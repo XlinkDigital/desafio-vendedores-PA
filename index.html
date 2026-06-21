@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Desafio Boombox - Armazém das Bananas</title>
+    <title>Desafio Vendedores - Armazém das Bananas</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -916,113 +916,6 @@
         .activity-body { flex: 1; }
         .activity-body p { font-size: 0.88rem; line-height: 1.4; }
         .activity-time { font-size: 0.75rem; color: #aaa; margin-top: 4px; }
-        /* TREND */
-        .trend-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 12px;
-        }
-        .trend-item {
-            background: var(--gray);
-            border-radius: 14px;
-            padding: 18px;
-            text-align: center;
-        }
-        .trend-item .lbl {
-            font-size: 0.75rem;
-            color: var(--gray-dark);
-            font-weight: 600;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-        }
-        .trend-item .val { font-size: 1.6rem; font-weight: 900; color: var(--green); }
-        .trend-item .val.up { color: var(--green); }
-        .trend-item .val.down { color: var(--red); }
-        /* TIP */
-        .tip {
-            background: var(--green-light);
-            border-radius: 14px;
-            padding: 16px;
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-        }
-        .tip i { color: var(--green); font-size: 1.3rem; margin-top: 2px; }
-        .tip p { font-size: 0.88rem; line-height: 1.5; }
-        .tip strong { color: var(--green); }
-        /* DOC ROW */
-        .doc-row {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 14px;
-            background: var(--gray);
-            border-radius: 12px;
-            margin-bottom: 8px;
-        }
-        .doc-row-ico {
-            width: 44px;
-            height: 44px;
-            border-radius: 10px;
-            background: var(--green);
-            color: var(--white);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-        }
-        .doc-row-info { flex: 1; }
-        .doc-row-info h4 { font-weight: 700; font-size: 0.9rem; }
-        .doc-row-info p { font-size: 0.78rem; color: #888; }
-        .doc-row-actions { display: flex; gap: 6px; }
-        .doc-row-actions button {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #888;
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-        .doc-row-actions button:hover { background: var(--green); color: var(--white); }
-        /* EMPTY */
-        .empty {
-            text-align: center;
-            padding: 50px 20px;
-            color: #bbb;
-        }
-        .empty i { font-size: 3.5rem; margin-bottom: 16px; display: block; }
-        /* PERIOD BAR */
-        .period-bar {
-            background: linear-gradient(135deg, var(--yellow), var(--yellow-dark));
-            color: var(--black);
-            padding: 14px 22px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-            font-weight: 700;
-            font-size: 0.9rem;
-        }
-        /* PRECEDENT */
-        .precedent-box {
-            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
-            border: 2px solid var(--orange);
-            border-radius: 20px;
-            padding: 24px;
-            text-align: center;
-        }
-        .precedent-num {
-            font-size: 3rem;
-            font-weight: 900;
-            color: var(--orange);
-            margin: 10px 0;
-        }
         /* TOAST */
         .toast-stack {
             position: fixed;
@@ -1150,6 +1043,117 @@
             background: var(--white);
             cursor: pointer;
         }
+        /* TREND */
+        .trend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+        }
+        .trend-item {
+            background: var(--gray);
+            border-radius: 14px;
+            padding: 18px;
+            text-align: center;
+        }
+        .trend-item .lbl {
+            font-size: 0.75rem;
+            color: var(--gray-dark);
+            font-weight: 600;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+        .trend-item .val {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--green);
+        }
+        .trend-item .val.up { color: var(--green); }
+        .trend-item .val.down { color: var(--red); }
+        /* QUICK TIP */
+        .tip {
+            background: var(--green-light);
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .tip i { color: var(--green); font-size: 1.3rem; margin-top: 2px; }
+        .tip p { font-size: 0.88rem; line-height: 1.5; }
+        .tip strong { color: var(--green); }
+        /* DOC ROW */
+        .doc-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px;
+            background: var(--gray);
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+        .doc-row-ico {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: var(--green);
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+        .doc-row-info { flex: 1; }
+        .doc-row-info h4 { font-weight: 700; font-size: 0.9rem; }
+        .doc-row-info p { font-size: 0.78rem; color: #888; }
+        .doc-row-actions { display: flex; gap: 6px; }
+        .doc-row-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #888;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .doc-row-actions button:hover { background: var(--green); color: var(--white); }
+        /* EMPTY */
+        .empty {
+            text-align: center;
+            padding: 50px 20px;
+            color: #bbb;
+        }
+        .empty i { font-size: 3.5rem; margin-bottom: 16px; display: block; }
+        /* PERIOD BAR */
+        .period-bar {
+            background: linear-gradient(135deg, var(--yellow), var(--yellow-dark));
+            color: var(--black);
+            padding: 14px 22px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        /* PRECEDENT */
+        .precedent-box {
+            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+            border: 2px solid var(--orange);
+            border-radius: 20px;
+            padding: 24px;
+            text-align: center;
+        }
+        .precedent-num {
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--orange);
+            margin: 10px 0;
+        }
         /* RESPONSIVE */
         @media (max-width: 768px) {
             .auth-box { padding: 28px; }
@@ -1177,7 +1181,7 @@
     <div class="auth-screen" id="telaSelecao">
         <div class="auth-box">
             <div class="auth-logo">ARMAZÉM <span>DAS</span> BANANAS</div>
-            <h1>Desafio Boombox 🍌</h1>
+            <h1>Desafio Vendedores 🍌</h1>
             <p>Escolha como deseja acessar</p>
             <div class="profile-cards">
                 <div class="profile-card vendedor" onclick="selecionarPerfil('vendedor')" id="cardVendedor">
@@ -1203,7 +1207,7 @@
         </div>
     </div>
     <!-- ═══════════════════════════════════════════
-         TELA 2A: LOGIN VENDEDOR (Entrar / Criar Conta)
+         TELA 2A: LOGIN VENDEDOR (Firebase)
     ═══════════════════════════════════════════ -->
     <div class="auth-screen" id="telaVendedor" style="display: none;">
         <div class="auth-box">
@@ -1263,7 +1267,7 @@
             </div>
             <!-- RESET SENHA -->
             <div class="form-panel" id="panelVendReset">
-                <form onsubmit="resetSenha(event, 'vendedor')">
+                <form onsubmit="resetSenha(event)">
                     <div class="form-group">
                         <label>Email cadastrado</label>
                         <input type="email" id="vendResetEmail" placeholder="seu@email.com" required>
@@ -1279,7 +1283,7 @@
         </div>
     </div>
     <!-- ═══════════════════════════════════════════
-         TELA 2B: LOGIN ADMIN (Apenas Entrar)
+         TELA 2B: LOGIN ADMIN (Chave de Acesso)
     ═══════════════════════════════════════════ -->
     <div class="auth-screen" id="telaAdmin" style="display: none;">
         <div class="auth-box">
@@ -1288,37 +1292,21 @@
             </div>
             <div class="auth-logo">ARMAZÉM <span>DAS</span> BANANAS</div>
             <h1>Acesso Administrativo</h1>
-            <p>Entre com suas credenciais de gestor</p>
+            <p>Identifique-se para acessar o painel</p>
             <form onsubmit="loginAdmin(event)">
                 <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="adminLoginEmail" placeholder="admin@email.com" required>
+                    <label>Nome do administrador</label>
+                    <input type="text" id="adminNome" placeholder="Seu nome" required>
                 </div>
                 <div class="form-group">
-                    <label>Senha</label>
-                    <input type="password" id="adminLoginSenha" placeholder="Sua senha" required>
+                    <label>Chave de acesso</label>
+                    <input type="password" id="adminChave" placeholder="Digite a chave" required>
                 </div>
                 <div class="error-box" id="adminLoginErro"></div>
                 <button type="submit" class="auth-btn" id="btnAdminLogin">
                     Entrar
                 </button>
-                <a class="form-link" onclick="mostrarReset('admin')">Esqueceu sua senha?</a>
             </form>
-            <!-- RESET SENHA ADMIN -->
-            <div id="panelAdminReset" style="display: none; margin-top: 20px;">
-                <form onsubmit="resetSenha(event, 'admin')">
-                    <div class="form-group">
-                        <label>Email cadastrado</label>
-                        <input type="email" id="adminResetEmail" placeholder="admin@email.com" required>
-                    </div>
-                    <div class="error-box" id="adminResetErro"></div>
-                    <div class="success-box" id="adminResetSucesso"></div>
-                    <button type="submit" class="auth-btn secondary" id="btnAdminReset">
-                        Enviar link de redefinição
-                    </button>
-                    <a class="form-link" onclick="esconderResetAdmin()">Voltar</a>
-                </form>
-            </div>
         </div>
     </div>
     <!-- ═══════════════════════════════════════════
@@ -1329,7 +1317,7 @@
             <div class="header-inner">
                 <div class="header-brand">
                     <div class="header-logo">ARMAZÉM <span>DAS</span> BANANAS</div>
-                    <div class="header-title">Desafio Boombox</div>
+                    <div class="header-title">Desafio Vendedores</div>
                 </div>
                 <div class="header-actions">
                     <div class="header-user">
@@ -1706,7 +1694,7 @@
             <div class="modal-body" id="modalBody"></div>
         </div>
     </div>
-    <!-- FIREBASE SDK (Modular via CDN) -->
+    <!-- FIREBASE SDK (Modular via CDN) — APENAS PARA VENDEDOR -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import {
@@ -1721,13 +1709,6 @@
             getFirestore,
             doc,
             setDoc,
-            getDoc,
-            collection,
-            getDocs,
-            addDoc,
-            query,
-            orderBy,
-            limit,
             serverTimestamp
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         // ═══════════════════════════════════════════
@@ -1745,11 +1726,16 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         // ═══════════════════════════════════════════
+        // CONFIG
+        // ═══════════════════════════════════════════
+        const ADMIN_KEY = "ABANANAS2026";
+        // ═══════════════════════════════════════════
         // STATE
         // ═══════════════════════════════════════════
         let perfilSelecionado = null;
         let currentUser = null;
         let currentUserData = null;
+        let isAdminSession = false;
         // ═══════════════════════════════════════════
         // UI HELPERS
         // ═══════════════════════════════════════════
@@ -1757,6 +1743,7 @@
             document.querySelectorAll('.auth-screen').forEach(s => s.style.display = 'none');
             document.getElementById(id).style.display = 'flex';
         }
+        window.showTela = showTela;
         function selecionarPerfil(perfil) {
             perfilSelecionado = perfil;
             document.querySelectorAll('.profile-card').forEach(c => c.classList.remove('selected'));
@@ -1777,6 +1764,9 @@
             perfilSelecionado = null;
             document.querySelectorAll('.profile-card').forEach(c => c.classList.remove('selected'));
             document.getElementById('btnContinuar').disabled = true;
+            document.getElementById('adminNome').value = '';
+            document.getElementById('adminChave').value = '';
+            document.getElementById('adminLoginErro').classList.remove('show');
             showTela('telaSelecao');
         }
         window.voltarParaSelecao = voltarParaSelecao;
@@ -1784,7 +1774,8 @@
             document.querySelectorAll('.form-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
             event.target.classList.add('active');
-            document.getElementById('panel' + tab.charAt(0).toUpperCase() + tab.slice(1).replace(/-([a-z])/g, (m, p) => p.toUpperCase())).classList.add('active');
+            const panelId = 'panel' + tab.split('-').map((w, i) => i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w.charAt(0).toUpperCase() + w.slice(1)).join('');
+            document.getElementById(panelId).classList.add('active');
         }
         window.switchTab = switchTab;
         function mostrarReset(tipo) {
@@ -1792,8 +1783,6 @@
                 document.getElementById('panelVendEntrar').classList.remove('active');
                 document.getElementById('panelVendCriar').classList.remove('active');
                 document.getElementById('panelVendReset').classList.add('active');
-            } else {
-                document.getElementById('panelAdminReset').style.display = 'block';
             }
         }
         window.mostrarReset = mostrarReset;
@@ -1804,10 +1793,6 @@
             document.querySelectorAll('.form-tab')[0].classList.add('active');
         }
         window.voltarLoginVendedor = voltarLoginVendedor;
-        function esconderResetAdmin() {
-            document.getElementById('panelAdminReset').style.display = 'none';
-        }
-        window.esconderResetAdmin = esconderResetAdmin;
         // ═══════════════════════════════════════════
         // TOAST
         // ═══════════════════════════════════════════
@@ -1843,7 +1828,7 @@
             return map[code] || 'Ocorreu um erro. Tente novamente.';
         }
         // ═══════════════════════════════════════════
-        // VENDEDOR: CRIAR CONTA
+        // VENDEDOR: CRIAR CONTA (Firebase)
         // ═══════════════════════════════════════════
         async function criarContaVendedor(e) {
             e.preventDefault();
@@ -1892,7 +1877,7 @@
         }
         window.criarContaVendedor = criarContaVendedor;
         // ═══════════════════════════════════════════
-        // LOGIN (VENDEDOR E ADMIN)
+        // VENDEDOR: LOGIN (Firebase)
         // ═══════════════════════════════════════════
         async function loginVendedor(e) {
             e.preventDefault();
@@ -1913,34 +1898,15 @@
             }
         }
         window.loginVendedor = loginVendedor;
-        async function loginAdmin(e) {
-            e.preventDefault();
-            const email = document.getElementById('adminLoginEmail').value.trim();
-            const senha = document.getElementById('adminLoginSenha').value;
-            const erro = document.getElementById('adminLoginErro');
-            const btn = document.getElementById('btnAdminLogin');
-            erro.classList.remove('show');
-            btn.disabled = true;
-            btn.innerHTML = 'Entrando... <span class="loading"></span>';
-            try {
-                await signInWithEmailAndPassword(auth, email, senha);
-            } catch (err) {
-                erro.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>${authErrorMsg(err.code)}</span>`;
-                erro.classList.add('show');
-                btn.disabled = false;
-                btn.innerHTML = 'Entrar';
-            }
-        }
-        window.loginAdmin = loginAdmin;
         // ═══════════════════════════════════════════
-        // RESET SENHA
+        // VENDEDOR: RESET SENHA
         // ═══════════════════════════════════════════
-        async function resetSenha(e, tipo) {
+        async function resetSenha(e) {
             e.preventDefault();
-            const email = document.getElementById(tipo === 'vendedor' ? 'vendResetEmail' : 'adminResetEmail').value.trim();
-            const erro = document.getElementById(tipo === 'vendedor' ? 'vendResetErro' : 'adminResetErro');
-            const sucesso = document.getElementById(tipo === 'vendedor' ? 'vendResetSucesso' : 'adminResetSucesso');
-            const btn = document.getElementById(tipo === 'vendedor' ? 'btnVendReset' : 'btnAdminReset');
+            const email = document.getElementById('vendResetEmail').value.trim();
+            const erro = document.getElementById('vendResetErro');
+            const sucesso = document.getElementById('vendResetSucesso');
+            const btn = document.getElementById('btnVendReset');
             erro.classList.remove('show');
             sucesso.classList.remove('show');
             btn.disabled = true;
@@ -1949,7 +1915,7 @@
                 await sendPasswordResetEmail(auth, email);
                 sucesso.innerHTML = '<i class="fas fa-check-circle"></i> <span>Enviamos um link de redefinição para o seu e-mail.</span>';
                 sucesso.classList.add('show');
-                document.getElementById(tipo === 'vendedor' ? 'vendResetEmail' : 'adminResetEmail').value = '';
+                document.getElementById('vendResetEmail').value = '';
             } catch (err) {
                 erro.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>${authErrorMsg(err.code)}</span>`;
                 erro.classList.add('show');
@@ -1960,62 +1926,98 @@
         }
         window.resetSenha = resetSenha;
         // ═══════════════════════════════════════════
-        // AUTH STATE LISTENER
+        // ADMIN: LOGIN COM CHAVE (Sem Firebase)
         // ═══════════════════════════════════════════
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                const userDoc = await getDoc(doc(db, 'users', user.uid));
-                if (!userDoc.exists()) {
-                    toast('Erro', 'Dados do usuário não encontrados.', 'error');
-                    await signOut(auth);
-                    return;
-                }
-                currentUserData = userDoc.data();
-                if (perfilSelecionado === 'admin' && currentUserData.role !== 'admin') {
-                    toast('Acesso negado', 'Esta conta não tem permissão de administrador.', 'error');
-                    await signOut(auth);
-                    document.getElementById('adminLoginErro').innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Esta conta não tem permissão de administrador.</span>';
-                    document.getElementById('adminLoginErro').classList.add('show');
-                    document.getElementById('btnAdminLogin').disabled = false;
-                    document.getElementById('btnAdminLogin').innerHTML = 'Entrar';
-                    return;
-                }
-                document.querySelectorAll('.auth-screen').forEach(s => s.style.display = 'none');
-                document.getElementById('app').style.display = 'block';
-                document.getElementById('headerName').textContent = currentUserData.nome || user.email;
-                document.getElementById('headerRole').textContent = currentUserData.role === 'admin' ? 'ADMIN' : 'VENDEDOR';
-                if (currentUserData.role === 'admin') {
-                    document.getElementById('navAdmin').style.display = 'flex';
-                    document.getElementById('navVendedor').style.display = 'none';
-                    goTo('adm-ranking');
-                } else {
-                    document.getElementById('navVendedor').style.display = 'flex';
-                    document.getElementById('navAdmin').style.display = 'none';
-                    initParticipantSelects();
-                    goTo('meu-ranking');
-                }
-                document.getElementById('dateAdmin').textContent = new Date().toLocaleDateString('pt-BR');
-                document.getElementById('dateGeral').textContent = new Date().toLocaleDateString('pt-BR');
-                toast('Bem-vindo!', `Olá, ${currentUserData.nome || 'Vendedor'}!`, 'success');
-            } else {
-                currentUser = null;
-                currentUserData = null;
+        function loginAdmin(e) {
+            e.preventDefault();
+            const nome = document.getElementById('adminNome').value.trim();
+            const chave = document.getElementById('adminChave').value;
+            const erro = document.getElementById('adminLoginErro');
+            const btn = document.getElementById('btnAdminLogin');
+            erro.classList.remove('show');
+            if (chave !== ADMIN_KEY) {
+                erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Chave de acesso incorreta.</span>';
+                erro.classList.add('show');
+                return;
             }
-        });
+            // Admin logado com sucesso — sem Firebase
+            isAdminSession = true;
+            currentUser = { displayName: nome, email: null };
+            currentUserData = { nome: nome, role: 'admin' };
+            entrarApp();
+        }
+        window.loginAdmin = loginAdmin;
+        // ═══════════════════════════════════════════
+        // ENTRAR NO APP
+        // ═══════════════════════════════════════════
+        function entrarApp() {
+            document.querySelectorAll('.auth-screen').forEach(s => s.style.display = 'none');
+            document.getElementById('app').style.display = 'block';
+            document.getElementById('headerName').textContent = currentUserData.nome || currentUser.displayName || 'Usuário';
+            document.getElementById('headerRole').textContent = currentUserData.role === 'admin' ? 'ADMIN' : 'VENDEDOR';
+            if (currentUserData.role === 'admin') {
+                document.getElementById('navAdmin').style.display = 'flex';
+                document.getElementById('navVendedor').style.display = 'none';
+                goTo('adm-ranking');
+            } else {
+                document.getElementById('navVendedor').style.display = 'flex';
+                document.getElementById('navAdmin').style.display = 'none';
+                initParticipantSelects();
+                goTo('meu-ranking');
+            }
+            document.getElementById('dateAdmin').textContent = new Date().toLocaleDateString('pt-BR');
+            document.getElementById('dateGeral').textContent = new Date().toLocaleDateString('pt-BR');
+            toast('Bem-vindo!', `Olá, ${currentUserData.nome || 'Vendedor'}!`, 'success');
+        }
+        window.entrarApp = entrarApp;
         // ═══════════════════════════════════════════
         // LOGOUT
         // ═══════════════════════════════════════════
         async function logout() {
-            await signOut(auth);
+            if (!isAdminSession && auth.currentUser) {
+                await signOut(auth);
+            }
+            isAdminSession = false;
+            currentUser = null;
+            currentUserData = null;
             document.getElementById('app').style.display = 'none';
             perfilSelecionado = null;
             document.querySelectorAll('.profile-card').forEach(c => c.classList.remove('selected'));
             document.getElementById('btnContinuar').disabled = true;
+            document.getElementById('adminNome').value = '';
+            document.getElementById('adminChave').value = '';
+            document.getElementById('adminLoginErro').classList.remove('show');
             showTela('telaSelecao');
             toast('Até logo!', 'Você saiu da conta.', 'info');
         }
         window.logout = logout;
+        // ═══════════════════════════════════════════
+        // FIREBASE AUTH STATE LISTENER (Vendedor)
+        // ═══════════════════════════════════════════
+        onAuthStateChanged(auth, async (user) => {
+            if (user && !isAdminSession) {
+                currentUser = user;
+                try {
+                    const { getDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (!userDoc.exists()) {
+                        toast('Erro', 'Dados do usuário não encontrados.', 'error');
+                        await signOut(auth);
+                        return;
+                    }
+                    currentUserData = userDoc.data();
+                    if (currentUserData.role !== 'vendedor') {
+                        toast('Erro', 'Tipo de conta inválido.', 'error');
+                        await signOut(auth);
+                        return;
+                    }
+                    entrarApp();
+                } catch (err) {
+                    console.error(err);
+                    toast('Erro', 'Não foi possível carregar seus dados.', 'error');
+                }
+            }
+        });
         // ═══════════════════════════════════════════
         // NAVIGATION
         // ═══════════════════════════════════════════
@@ -2023,9 +2025,7 @@
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             const target = document.getElementById(sectionId);
-            if (target) {
-                target.classList.add('active');
-            }
+            if (target) target.classList.add('active');
             const navBtn = document.querySelector(`.nav-btn[onclick="goTo('${sectionId}')"]`);
             if (navBtn) navBtn.classList.add('active');
             window.scrollTo(0, 0);
@@ -2042,7 +2042,7 @@
         }
         window.goTo = goTo;
         // ═══════════════════════════════════════════
-        // RANKING CALCULATION
+        // RANKING CALC
         // ═══════════════════════════════════════════
         function calcRanking() {
             const participants = getLocal('bb_participants') || [];
@@ -2072,7 +2072,7 @@
             return out.sort((a, b) => parseFloat(b.scores.total) - parseFloat(a.scores.total));
         }
         // ═══════════════════════════════════════════
-        // LOCAL STORAGE HELPERS (for demo data)
+        // LOCAL STORAGE HELPERS
         // ═══════════════════════════════════════════
         function getLocal(k) {
             try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; }
