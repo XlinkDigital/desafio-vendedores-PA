@@ -3,57 +3,231 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Desafio Vendedores - Armazém das Bananas</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <title>Desafio Boombox - Armazém das Bananas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --green: #00a651;
             --green-dark: #008c44;
+            --green-light: #e8f5e9;
             --yellow: #ffc72c;
             --yellow-dark: #e6b325;
+            --yellow-light: #fff8e1;
             --black: #1a1a1a;
             --white: #ffffff;
             --gray: #f5f5f5;
+            --gray-dark: #666;
             --red: #e74c3c;
+            --orange: #ff9800;
+            --blue: #2196f3;
+            --purple: #9c27b0;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Montserrat', sans-serif; background: var(--gray); color: var(--black); min-height: 100vh; }
-        .header { background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%); padding: 20px; text-align: center; position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
-        .header::before { content: ''; position: absolute; top: -50%; right: -10%; width: 300px; height: 300px; background: rgba(255,255,255,0.05); border-radius: 50%; }
-        .logo { font-size: 1.2rem; font-weight: 800; color: var(--yellow); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
-        .logo span { color: var(--white); }
-        .header h1 { color: var(--white); font-size: 2rem; font-weight: 900; text-transform: uppercase; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
-        .header .subtitle { color: var(--yellow); font-weight: 700; font-size: 1.1rem; margin-top: 5px; }
-        .prize-badge { display: inline-flex; align-items: center; gap: 10px; background: var(--yellow); color: var(--black); padding: 10px 25px; border-radius: 50px; font-weight: 800; margin-top: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-        .nav { background: var(--white); display: flex; justify-content: center; gap: 5px; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
-        .nav-btn { padding: 12px 20px; border: none; background: transparent; color: var(--black); font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.9rem; cursor: pointer; border-radius: 10px; transition: all 0.3s; display: flex; align-items: center; gap: 8px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--gray);
+            color: var(--black);
+            min-height: 100vh;
+        }
+        /* ═══════════════════════════════════════════
+           LOGIN / SELETOR DE PERFIL
+        ═══════════════════════════════════════════ */
+        .login-screen {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+        }
+        .login-box {
+            background: var(--white);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .login-box::before {
+            content: '🍌';
+            position: absolute;
+            top: -20px; right: -20px;
+            font-size: 6rem;
+            opacity: 0.1;
+            transform: rotate(15deg);
+        }
+        .login-logo { font-size: 1.4rem; font-weight: 900; color: var(--green); margin-bottom: 10px; letter-spacing: 1px; }
+        .login-logo span { color: var(--yellow-dark); }
+        .login-box h1 { font-size: 1.8rem; font-weight: 900; margin-bottom: 10px; color: var(--black); }
+        .login-box p { color: var(--gray-dark); margin-bottom: 30px; font-size: 0.95rem; }
+        .profile-selector { display: flex; flex-direction: column; gap: 15px; }
+        .profile-btn {
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 16px;
+            background: var(--white);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            text-align: left;
+            font-family: 'Montserrat', sans-serif;
+        }
+        .profile-btn:hover { border-color: var(--green); transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,166,81,0.15); }
+        .profile-btn.selected { border-color: var(--green); background: var(--green-light); }
+        .profile-icon { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; }
+        .profile-btn.admin .profile-icon { background: linear-gradient(135deg, var(--green), var(--green-dark)); color: var(--white); }
+        .profile-btn.participant .profile-icon { background: linear-gradient(135deg, var(--yellow), var(--yellow-dark)); color: var(--black); }
+        .profile-info h3 { font-weight: 800; font-size: 1.1rem; margin-bottom: 3px; }
+        .profile-info p { font-size: 0.85rem; color: var(--gray-dark); margin: 0; }
+        .login-btn {
+            width: 100%; padding: 16px; margin-top: 20px; border: none; border-radius: 12px;
+            background: linear-gradient(135deg, var(--green), var(--green-dark));
+            color: var(--white); font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 1rem;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,166,81,0.3); }
+        .login-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        /* HEADER */
+        .header { background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%); padding: 15px 20px; position: relative; overflow: hidden; }
+        .header-content { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .header-logo { font-size: 1.1rem; font-weight: 900; color: var(--yellow); letter-spacing: 1px; }
+        .header-logo span { color: var(--white); }
+        .header-title { color: var(--white); font-size: 1.3rem; font-weight: 800; }
+        .header-badge { background: var(--yellow); color: var(--black); padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; }
+        .header-user { display: flex; align-items: center; gap: 10px; color: var(--white); font-weight: 600; font-size: 0.9rem; }
+        .header-user button { background: rgba(255,255,255,0.2); border: none; color: var(--white); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 0.8rem; transition: all 0.3s; }
+        .header-user button:hover { background: rgba(255,255,255,0.3); }
+        .notification-bell { position: relative; cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.3s; }
+        .notification-bell:hover { background: rgba(255,255,255,0.2); }
+        .notification-bell i { font-size: 1.2rem; }
+        .notification-badge { position: absolute; top: 2px; right: 2px; background: var(--red); color: var(--white); font-size: 0.65rem; font-weight: 900; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .notification-dropdown { display: none; position: absolute; top: 100%; right: 0; margin-top: 10px; background: var(--white); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); width: 350px; max-height: 400px; overflow-y: auto; z-index: 200; }
+        .notification-dropdown.active { display: block; }
+        .notification-dropdown-header { padding: 15px 20px; border-bottom: 1px solid #eee; font-weight: 800; display: flex; justify-content: space-between; align-items: center; }
+        .notification-dropdown-header button { background: none; border: none; color: var(--green); font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 0.8rem; cursor: pointer; }
+        .notification-item { padding: 15px 20px; border-bottom: 1px solid #f5f5f5; display: flex; gap: 12px; align-items: flex-start; transition: all 0.2s; cursor: pointer; }
+        .notification-item:hover { background: var(--gray); }
+        .notification-item.unread { background: #e8f5e9; }
+        .notification-item-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+        .notification-item-icon.up { background: var(--green-light); color: var(--green); }
+        .notification-item-icon.down { background: #ffebee; color: var(--red); }
+        .notification-item-icon.new { background: var(--yellow-light); color: var(--orange); }
+        .notification-item-content { flex: 1; }
+        .notification-item-content p { font-size: 0.9rem; line-height: 1.4; margin-bottom: 4px; }
+        .notification-item-content .time { font-size: 0.75rem; color: #888; }
+        .banana-deco { position: absolute; font-size: 3rem; opacity: 0.08; pointer-events: none; }
+        .banana-deco-1 { top: 10px; right: 100px; transform: rotate(30deg); }
+        .banana-deco-2 { bottom: -10px; left: 50px; transform: rotate(-20deg); }
+        /* NAV */
+        .nav { background: var(--white); display: flex; justify-content: center; gap: 5px; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; overflow-x: auto; }
+        .nav-btn { padding: 12px 20px; border: none; background: transparent; color: var(--black); font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.9rem; cursor: pointer; border-radius: 10px; transition: all 0.3s; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
         .nav-btn:hover, .nav-btn.active { background: var(--green); color: var(--white); }
+        /* CONTAINER */
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
         .section { display: none; animation: fadeIn 0.4s ease; }
         .section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .card { background: var(--white); border-radius: 16px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 15px rgba(0,0,0,0.05); border-left: 4px solid var(--green); }
-        .card-title { font-size: 1.3rem; font-weight: 800; color: var(--black); margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        /* CARDS */
+        .card { background: var(--white); border-radius: 20px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 15px rgba(0,0,0,0.05); position: relative; overflow: hidden; }
+        .card-banana { position: absolute; top: 10px; right: 15px; font-size: 2.5rem; opacity: 0.06; transform: rotate(15deg); }
+        .card-title { font-size: 1.2rem; font-weight: 800; color: var(--black); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
         .card-title i { color: var(--green); }
-        .criteria-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .criteria-card { background: var(--white); border-radius: 16px; padding: 20px; box-shadow: 0 2px 15px rgba(0,0,0,0.05); border-top: 4px solid var(--green); transition: transform 0.3s; }
-        .criteria-card:hover { transform: translateY(-5px); }
-        .criteria-card.a { border-top-color: var(--green); }
-        .criteria-card.b { border-top-color: var(--yellow); }
-        .criteria-card.c { border-top-color: var(--green-dark); }
-        .criteria-card.d { border-top-color: var(--yellow-dark); }
-        .criteria-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .criteria-badge { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--white); font-size: 1.1rem; }
-        .criteria-card.a .criteria-badge { background: var(--green); }
-        .criteria-card.b .criteria-badge { background: var(--yellow); color: var(--black); }
-        .criteria-card.c .criteria-badge { background: var(--green-dark); }
-        .criteria-card.d .criteria-badge { background: var(--yellow-dark); color: var(--black); }
-        .criteria-title { font-weight: 800; font-size: 0.95rem; }
-        .criteria-desc { font-size: 0.85rem; color: #666; line-height: 1.4; }
+        /* PARTICIPANT DASHBOARD */
+        .participant-dashboard { display: grid; gap: 20px; }
+        .position-card { background: linear-gradient(135deg, var(--green), var(--green-dark)); border-radius: 24px; padding: 30px; color: var(--white); text-align: center; position: relative; overflow: hidden; }
+        .position-card::before { content: '🏆'; position: absolute; top: -10px; right: 20px; font-size: 5rem; opacity: 0.15; }
+        .position-label { font-size: 0.9rem; font-weight: 600; opacity: 0.9; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+        .position-number { font-size: 5rem; font-weight: 900; line-height: 1; margin-bottom: 10px; }
+        .position-number small { font-size: 1.5rem; opacity: 0.8; }
+        .position-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 5px; }
+        .position-area { opacity: 0.8; font-size: 0.95rem; }
+        .position-total { margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2); display: flex; justify-content: center; gap: 30px; }
+        .position-stat { text-align: center; }
+        .position-stat .value { font-size: 1.8rem; font-weight: 900; }
+        .position-stat .label { font-size: 0.8rem; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; }
+        /* WHAT TO DO CARD */
+        .what-to-do { background: var(--yellow-light); border-radius: 20px; padding: 25px; border: 2px solid var(--yellow); }
+        .what-to-do-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .what-to-do-icon { width: 50px; height: 50px; border-radius: 14px; background: var(--yellow); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .what-to-do-title { font-weight: 800; font-size: 1.2rem; color: var(--black); }
+        .what-to-do-subtitle { font-size: 0.85rem; color: var(--gray-dark); }
+        .criteria-list { display: flex; flex-direction: column; gap: 12px; }
+        .criteria-item { background: var(--white); border-radius: 16px; padding: 18px; display: flex; align-items: flex-start; gap: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: transform 0.2s; }
+        .criteria-item:hover { transform: translateX(5px); }
+        .criteria-badge { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.2rem; color: var(--white); flex-shrink: 0; }
+        .criteria-badge.a { background: var(--green); }
+        .criteria-badge.b { background: var(--yellow); color: var(--black); }
+        .criteria-badge.c { background: var(--orange); }
+        .criteria-badge.d { background: var(--green-dark); }
+        .criteria-content { flex: 1; }
+        .criteria-name { font-weight: 800; font-size: 1rem; margin-bottom: 4px; }
+        .criteria-analogy { font-size: 0.9rem; color: var(--gray-dark); line-height: 1.4; margin-bottom: 8px; }
+        .criteria-my-score { display: flex; align-items: center; gap: 10px; }
+        .score-bar-mini { flex: 1; height: 8px; background: #eee; border-radius: 10px; overflow: hidden; }
+        .score-fill-mini { height: 100%; border-radius: 10px; transition: width 0.5s ease; }
+        .score-fill-mini.a { background: var(--green); }
+        .score-fill-mini.b { background: var(--yellow); }
+        .score-fill-mini.c { background: var(--orange); }
+        .score-fill-mini.d { background: var(--green-dark); }
+        .score-value-mini { font-weight: 800; font-size: 0.9rem; min-width: 50px; text-align: right; }
+        /* PRECEDENT HIGHLIGHT */
+        .precedent-highlight { background: linear-gradient(135deg, #fff3e0, #ffe0b2); border: 2px solid var(--orange); border-radius: 20px; padding: 25px; margin-top: 20px; }
+        .precedent-highlight .card-title { color: var(--orange); }
+        .precedent-highlight .card-title i { color: var(--orange); }
+        .precedent-count { font-size: 3rem; font-weight: 900; color: var(--orange); text-align: center; margin: 15px 0; }
+        .precedent-label { text-align: center; font-weight: 700; color: var(--gray-dark); }
+        /* CHARTS */
+        .chart-container { position: relative; height: 300px; margin: 20px 0; }
+        .chart-svg { width: 100%; height: 100%; }
+        .chart-line { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+        .chart-area { opacity: 0.2; }
+        .chart-dot { r: 5; stroke-width: 3; stroke: var(--white); cursor: pointer; transition: r 0.2s; }
+        .chart-dot:hover { r: 8; }
+        .chart-grid-line { stroke: #eee; stroke-width: 1; stroke-dasharray: 4,4; }
+        .chart-axis-text { font-size: 0.75rem; fill: #888; font-family: 'Montserrat', sans-serif; }
+        .chart-tooltip { position: absolute; background: var(--black); color: var(--white); padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 10; }
+        .chart-tooltip.visible { opacity: 1; }
+        .chart-legend { display: flex; justify-content: center; gap: 20px; margin-top: 15px; flex-wrap: wrap; }
+        .chart-legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; }
+        .chart-legend-color { width: 16px; height: 16px; border-radius: 4px; }
+        .bar-chart { display: flex; align-items: flex-end; justify-content: space-around; height: 200px; padding: 20px 0; gap: 10px; }
+        .bar-chart-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .bar-chart-bar { width: 100%; max-width: 60px; border-radius: 8px 8px 0 0; transition: height 0.5s ease; position: relative; min-height: 4px; }
+        .bar-chart-bar::after { content: attr(data-value); position: absolute; top: -25px; left: 50%; transform: translateX(-50%); font-size: 0.8rem; font-weight: 800; color: var(--black); white-space: nowrap; }
+        .bar-chart-label { font-size: 0.75rem; font-weight: 600; color: var(--gray-dark); text-align: center; }
+        .mini-chart { height: 60px; margin-top: 10px; }
+        /* CRITERIA EXPLANATION */
+        .criteria-explain-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+        .criteria-explain-card { background: var(--white); border-radius: 20px; padding: 25px; box-shadow: 0 2px 15px rgba(0,0,0,0.05); border-top: 5px solid; position: relative; overflow: hidden; }
+        .criteria-explain-card.a { border-top-color: var(--green); }
+        .criteria-explain-card.b { border-top-color: var(--yellow); }
+        .criteria-explain-card.c { border-top-color: var(--orange); }
+        .criteria-explain-card.d { border-top-color: var(--green-dark); }
+        .criteria-explain-card .emoji { font-size: 3rem; margin-bottom: 15px; display: block; }
+        .criteria-explain-card h3 { font-weight: 800; font-size: 1.1rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .criteria-explain-card .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; color: var(--white); font-weight: 800; }
+        .criteria-explain-card.a .badge { background: var(--green); }
+        .criteria-explain-card.b .badge { background: var(--yellow); color: var(--black); }
+        .criteria-explain-card.c .badge { background: var(--orange); }
+        .criteria-explain-card.d .badge { background: var(--green-dark); }
+        .criteria-explain-card p { font-size: 0.95rem; color: var(--gray-dark); line-height: 1.6; }
+        .criteria-explain-card .analogy { margin-top: 15px; padding: 15px; background: var(--gray); border-radius: 12px; font-style: italic; font-size: 0.9rem; color: var(--black); border-left: 4px solid var(--yellow); }
+        /* RANKING TABLE */
         .ranking-table { width: 100%; border-collapse: collapse; background: var(--white); border-radius: 16px; overflow: hidden; box-shadow: 0 2px 15px rgba(0,0,0,0.05); }
-        .ranking-table th { background: var(--green); color: var(--white); padding: 15px; text-align: left; font-weight: 700; font-size: 0.9rem; }
+        .ranking-table th { background: var(--green); color: var(--white); padding: 15px; text-align: left; font-weight: 700; font-size: 0.85rem; }
         .ranking-table td { padding: 15px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
         .ranking-table tr:hover { background: #f9f9f9; }
         .rank-number { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--white); }
@@ -67,59 +241,9 @@
         .score-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease; }
         .score-fill.a { background: var(--green); }
         .score-fill.b { background: var(--yellow); }
-        .score-fill.c { background: var(--green-dark); }
-        .score-fill.d { background: var(--yellow-dark); }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; font-weight: 700; margin-bottom: 8px; color: var(--black); font-size: 0.9rem; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-family: 'Montserrat', sans-serif; font-size: 0.95rem; transition: border-color 0.3s; }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--green); }
-        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .btn { padding: 14px 30px; border: none; border-radius: 10px; font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 1rem; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; gap: 10px; }
-        .btn-primary { background: linear-gradient(135deg, var(--green), var(--green-dark)); color: var(--white); box-shadow: 0 4px 15px rgba(0,166,81,0.3); }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,166,81,0.4); }
-        .btn-yellow { background: linear-gradient(135deg, var(--yellow), var(--yellow-dark)); color: var(--black); box-shadow: 0 4px 15px rgba(255,199,44,0.3); }
-        .btn-yellow:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,199,44,0.4); }
-        .btn-danger { background: var(--red); color: var(--white); }
-        .upload-area { border: 3px dashed #ddd; border-radius: 16px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; background: #fafafa; }
-        .upload-area:hover { border-color: var(--green); background: #f0f9f4; }
-        .upload-area i { font-size: 3rem; color: var(--green); margin-bottom: 15px; }
-        .upload-area h3 { font-weight: 700; margin-bottom: 5px; }
-        .upload-area p { color: #888; font-size: 0.9rem; }
-        .file-list { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px; }
-        .file-tag { background: var(--green); color: var(--white); padding: 8px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-        .file-tag button { background: none; border: none; color: var(--white); cursor: pointer; font-size: 1rem; }
-        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 15px; }
-        .gallery-item { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 1; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
-        .gallery-item:hover img { transform: scale(1.1); }
-        .gallery-item .overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.7)); padding: 10px; color: var(--white); font-size: 0.8rem; font-weight: 600; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
-        .modal-overlay.active { display: flex; }
-        .modal { background: var(--white); border-radius: 20px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; animation: slideUp 0.3s ease; }
-        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .modal-header { padding: 25px; border-bottom: 2px solid var(--gray); display: flex; justify-content: space-between; align-items: center; }
-        .modal-header h2 { font-weight: 800; }
-        .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
-        .modal-close:hover { background: var(--gray); color: var(--black); }
-        .modal-body { padding: 25px; }
-        .participant-header { display: flex; align-items: center; gap: 20px; margin-bottom: 25px; }
-        .participant-header .avatar { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--green), var(--green-dark)); color: var(--white); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; }
-        .participant-header .info h2 { font-weight: 800; margin-bottom: 5px; }
-        .participant-header .info p { color: #666; font-size: 0.9rem; }
-        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px; }
-        .stat-box { background: var(--gray); padding: 15px; border-radius: 12px; text-align: center; }
-        .stat-box .value { font-size: 1.5rem; font-weight: 900; color: var(--green); }
-        .stat-box .label { font-size: 0.8rem; color: #666; font-weight: 600; margin-top: 5px; }
-        .doc-list { display: flex; flex-direction: column; gap: 10px; }
-        .doc-item { display: flex; align-items: center; gap: 15px; padding: 15px; background: var(--gray); border-radius: 12px; transition: all 0.3s; }
-        .doc-item:hover { background: #e8f5e9; }
-        .doc-icon { width: 50px; height: 50px; border-radius: 10px; background: var(--green); color: var(--white); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
-        .doc-info { flex: 1; }
-        .doc-info h4 { font-weight: 700; font-size: 0.95rem; }
-        .doc-info p { font-size: 0.8rem; color: #888; margin-top: 3px; }
-        .doc-actions { display: flex; gap: 10px; }
-        .doc-actions button { background: none; border: none; cursor: pointer; font-size: 1.1rem; color: #888; width: 35px; height: 35px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
-        .doc-actions button:hover { background: var(--green); color: var(--white); }
+        .score-fill.c { background: var(--orange); }
+        .score-fill.d { background: var(--green-dark); }
+        /* PODIUM */
         .podium { display: flex; justify-content: center; align-items: flex-end; gap: 20px; margin: 30px 0; padding: 20px; }
         .podium-place { text-align: center; position: relative; }
         .podium-avatar { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.5rem; color: var(--white); border: 4px solid; position: relative; }
@@ -133,215 +257,572 @@
         .podium-place:nth-child(1) .podium-base { height: 100px; background: linear-gradient(135deg, #ffd700, #ffed4a); color: var(--black); width: 140px; }
         .podium-place:nth-child(2) .podium-base { height: 70px; background: linear-gradient(135deg, #c0c0c0, #e8e8e8); color: var(--black); }
         .podium-place:nth-child(3) .podium-base { height: 50px; background: linear-gradient(135deg, #cd7f32, #daa520); }
+        /* FORMS */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: 700; margin-bottom: 8px; color: var(--black); font-size: 0.9rem; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 14px 18px; border: 2px solid #e0e0e0; border-radius: 12px; font-family: 'Montserrat', sans-serif; font-size: 0.95rem; transition: border-color 0.3s; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--green); }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .btn { padding: 14px 28px; border: none; border-radius: 12px; font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 0.95rem; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; gap: 10px; }
+        .btn-primary { background: linear-gradient(135deg, var(--green), var(--green-dark)); color: var(--white); box-shadow: 0 4px 15px rgba(0,166,81,0.3); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,166,81,0.4); }
+        .btn-yellow { background: linear-gradient(135deg, var(--yellow), var(--yellow-dark)); color: var(--black); box-shadow: 0 4px 15px rgba(255,199,44,0.3); }
+        .btn-yellow:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,199,44,0.4); }
+        .btn-danger { background: var(--red); color: var(--white); }
+        /* UPLOAD */
+        .upload-area { border: 3px dashed #ddd; border-radius: 16px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; background: #fafafa; }
+        .upload-area:hover { border-color: var(--green); background: #f0f9f4; }
+        .upload-area i { font-size: 3rem; color: var(--green); margin-bottom: 15px; }
+        .file-list { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px; }
+        .file-tag { background: var(--green); color: var(--white); padding: 8px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        /* GALLERY */
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 15px; }
+        .gallery-item { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 1; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+        .gallery-item:hover img { transform: scale(1.1); }
+        /* MODAL */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: var(--white); border-radius: 20px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { padding: 25px; border-bottom: 2px solid var(--gray); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { font-weight: 800; }
+        .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
+        .modal-close:hover { background: var(--gray); color: var(--black); }
+        .modal-body { padding: 25px; }
+        /* STATS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-box { background: var(--gray); padding: 20px; border-radius: 16px; text-align: center; }
+        .stat-box .value { font-size: 2rem; font-weight: 900; color: var(--green); }
+        .stat-box .label { font-size: 0.8rem; color: var(--gray-dark); font-weight: 600; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        /* EMPTY STATE */
         .empty-state { text-align: center; padding: 60px 20px; color: #888; }
         .empty-state i { font-size: 4rem; margin-bottom: 20px; color: #ddd; }
-        .empty-state h3 { font-weight: 700; margin-bottom: 10px; color: var(--black); }
-        .period-info { background: linear-gradient(135deg, var(--yellow), var(--yellow-dark)); color: var(--black); padding: 15px 25px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; font-weight: 700; }
-        .score-inputs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-        .score-input-group { background: var(--gray); padding: 15px; border-radius: 12px; border-left: 4px solid var(--green); }
-        .score-input-group.b { border-left-color: var(--yellow); }
-        .score-input-group.c { border-left-color: var(--green-dark); }
-        .score-input-group.d { border-left-color: var(--yellow-dark); }
-        .score-input-group label { font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 8px; }
-        .score-input-group input { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Montserrat', sans-serif; font-weight: 700; text-align: center; font-size: 1.1rem; }
-        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .filter-btn { padding: 8px 16px; border: 2px solid #ddd; background: var(--white); border-radius: 20px; font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.3s; }
-        .filter-btn:hover, .filter-btn.active { border-color: var(--green); background: var(--green); color: var(--white); }
+        /* ACTIVITY */
         .activity-item { display: flex; gap: 15px; padding: 15px; border-bottom: 1px solid #eee; align-items: flex-start; }
         .activity-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--green); color: var(--white); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .activity-content { flex: 1; }
         .activity-content p { font-size: 0.9rem; line-height: 1.4; }
         .activity-content .time { font-size: 0.8rem; color: #888; margin-top: 5px; }
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .header-content { flex-direction: column; gap: 10px; text-align: center; }
+            .header-title { font-size: 1.1rem; }
+            .nav { flex-wrap: wrap; }
+            .nav-btn { font-size: 0.8rem; padding: 10px 15px; }
+            .podium { flex-direction: column; align-items: center; }
+            .position-number { font-size: 3.5rem; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .chart-container { height: 200px; }
+            .notification-dropdown { width: 300px; right: -50px; }
+        }
         input[type="file"] { display: none; }
-        @media (max-width: 768px) { .header h1 { font-size: 1.5rem; } .nav { flex-wrap: wrap; } .nav-btn { font-size: 0.8rem; padding: 10px 15px; } .stats-grid { grid-template-columns: 1fr; } .participant-header { flex-direction: column; text-align: center; } .ranking-table th, .ranking-table td { padding: 10px; font-size: 0.8rem; } }
+        /* Hide admin elements when participant */
+        .admin-only { display: none; }
+        .admin-view .admin-only { display: block; }
+        .admin-view .admin-only-flex { display: flex; }
+        .admin-view .admin-only-grid { display: grid; }
+        .participant-view .participant-only { display: block; }
+        .participant-view .admin-only, .participant-view .admin-only-flex, .participant-view .admin-only-grid { display: none !important; }
+        .admin-view .participant-only { display: none !important; }
+        /* Period info */
+        .period-info { background: linear-gradient(135deg, var(--yellow), var(--yellow-dark)); color: var(--black); padding: 15px 25px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; font-weight: 700; font-size: 0.95rem; }
+        /* Score inputs */
+        .score-inputs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .score-input-group { background: var(--gray); padding: 18px; border-radius: 16px; border-left: 4px solid var(--green); }
+        .score-input-group.b { border-left-color: var(--yellow); }
+        .score-input-group.c { border-left-color: var(--orange); }
+        .score-input-group.d { border-left-color: var(--green-dark); }
+        .score-input-group label { font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .score-input-group input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 10px; font-family: 'Montserrat', sans-serif; font-weight: 700; text-align: center; font-size: 1.1rem; }
+        /* Filter bar */
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-btn { padding: 8px 16px; border: 2px solid #ddd; background: var(--white); border-radius: 20px; font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.3s; }
+        .filter-btn:hover, .filter-btn.active { border-color: var(--green); background: var(--green); color: var(--white); }
+        /* Doc list */
+        .doc-list { display: flex; flex-direction: column; gap: 10px; }
+        .doc-item { display: flex; align-items: center; gap: 15px; padding: 15px; background: var(--gray); border-radius: 12px; transition: all 0.3s; }
+        .doc-item:hover { background: #e8f5e9; }
+        .doc-icon { width: 50px; height: 50px; border-radius: 10px; background: var(--green); color: var(--white); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+        .doc-info { flex: 1; }
+        .doc-info h4 { font-weight: 700; font-size: 0.95rem; }
+        .doc-info p { font-size: 0.8rem; color: #888; margin-top: 3px; }
+        .doc-actions { display: flex; gap: 10px; }
+        .doc-actions button { background: none; border: none; cursor: pointer; font-size: 1.1rem; color: #888; width: 35px; height: 35px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
+        .doc-actions button:hover { background: var(--green); color: var(--white); }
+        /* Participant selector */
+        .participant-selector { margin-bottom: 20px; }
+        .participant-selector select { width: 100%; padding: 16px 20px; border: 2px solid var(--green); border-radius: 16px; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 1rem; background: var(--white); cursor: pointer; }
+        /* Progress ring */
+        .progress-ring-container { display: flex; justify-content: center; margin: 20px 0; }
+        .progress-ring { position: relative; width: 150px; height: 150px; }
+        .progress-ring svg { transform: rotate(-90deg); }
+        .progress-ring-bg { fill: none; stroke: #eee; stroke-width: 10; }
+        .progress-ring-fill { fill: none; stroke: var(--yellow); stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.5s ease; }
+        .progress-ring-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        .progress-ring-text .number { font-size: 2.5rem; font-weight: 900; color: var(--green); }
+        .progress-ring-text .label { font-size: 0.8rem; color: var(--gray-dark); font-weight: 600; }
+        /* Quick tip */
+        .quick-tip { background: var(--green-light); border-radius: 16px; padding: 20px; margin-top: 20px; display: flex; align-items: flex-start; gap: 15px; }
+        .quick-tip i { color: var(--green); font-size: 1.5rem; margin-top: 3px; }
+        .quick-tip p { font-size: 0.9rem; line-height: 1.5; color: var(--black); }
+        .quick-tip strong { color: var(--green); }
+        /* Comparison card */
+        .comparison-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+        .comparison-item { background: var(--gray); border-radius: 16px; padding: 20px; text-align: center; }
+        .comparison-item .label { font-size: 0.8rem; color: var(--gray-dark); font-weight: 600; margin-bottom: 8px; }
+        .comparison-item .value { font-size: 1.8rem; font-weight: 900; }
+        .comparison-item .value.positive { color: var(--green); }
+        .comparison-item .value.negative { color: var(--red); }
+        .comparison-item .change { font-size: 0.85rem; font-weight: 700; margin-top: 5px; }
+        .trend-indicator { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
+        .trend-indicator.up { background: var(--green-light); color: var(--green); }
+        .trend-indicator.down { background: #ffebee; color: var(--red); }
+        /* Toast notification */
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: var(--white); border-radius: 16px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); display: flex; align-items: flex-start; gap: 15px; min-width: 300px; max-width: 400px; animation: slideInRight 0.3s ease; border-left: 4px solid var(--green); }
+        .toast.warning { border-left-color: var(--yellow); }
+        .toast.danger { border-left-color: var(--red); }
+        .toast.info { border-left-color: var(--blue); }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        .toast.removing { animation: slideOutRight 0.3s ease forwards; }
+        .toast-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+        .toast.success .toast-icon { background: var(--green-light); color: var(--green); }
+        .toast.warning .toast-icon { background: var(--yellow-light); color: var(--orange); }
+        .toast.danger .toast-icon { background: #ffebee; color: var(--red); }
+        .toast.info .toast-icon { background: #e3f2fd; color: var(--blue); }
+        .toast-content { flex: 1; }
+        .toast-content h4 { font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; }
+        .toast-content p { font-size: 0.85rem; color: var(--gray-dark); line-height: 1.4; }
+        .toast-close { background: none; border: none; color: #888; cursor: pointer; font-size: 1.2rem; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s; }
+        .toast-close:hover { background: var(--gray); }
+        /* Push notification button */
+        .push-permission-btn { position: fixed; bottom: 20px; right: 20px; background: var(--green); color: var(--white); border: none; border-radius: 50px; padding: 15px 25px; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 20px rgba(0,166,81,0.3); display: flex; align-items: center; gap: 10px; z-index: 999; transition: all 0.3s; }
+        .push-permission-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(0,166,81,0.4); }
+        .push-permission-btn.hidden { display: none; }
     </style>
-    <base target="_blank">
 </head>
 <body>
+    <!-- TOAST CONTAINER -->
+    <div class="toast-container" id="toastContainer"></div>
 
-    <!-- HEADER -->
-    <header class="header">
-        <div class="logo">ARMAZÉM <span>DAS</span> BANANAS</div>
-        <h1>Desafio do Mês</h1>
-        <div class="subtitle">Quer Ganhar uma Boombox?</div>
-        <div class="prize-badge">
-            <i class="fas fa-trophy"></i>
-            DOMINE OS 4 CRITÉRIOS
+    <!-- LOGIN SCREEN -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-box">
+            <div class="login-logo">ARMAZÉM <span>DAS</span> BANANAS</div>
+            <h1>Desafio Boombox 🍌</h1>
+            <p>Selecione seu perfil para acessar o ranking</p>
+            <div class="profile-selector">
+                <button class="profile-btn admin" onclick="selectProfile('admin')" id="btnAdmin">
+                    <div class="profile-icon"><i class="fas fa-user-shield"></i></div>
+                    <div class="profile-info">
+                        <h3>Admin / Gestor</h3>
+                        <p>Acesso completo: ranking, registros, documentos e gestão</p>
+                    </div>
+                </button>
+                <button class="profile-btn participant" onclick="selectProfile('participant')" id="btnParticipant">
+                    <div class="profile-icon"><i class="fas fa-user"></i></div>
+                    <div class="profile-info">
+                        <h3>Vendedor</h3>
+                        <p>Visualize sua posição e saiba o que precisa fazer</p>
+                    </div>
+                </button>
+            </div>
+            <button class="login-btn" id="loginBtn" onclick="doLogin()" disabled>Entrar</button>
         </div>
-    </header>
+    </div>
 
-    <!-- NAV -->
-    <nav class="nav">
-        <button class="nav-btn active" onclick="showSection('ranking', event)">
-            <i class="fas fa-trophy"></i> Ranking
-        </button>
-        <button class="nav-btn" onclick="showSection('participantes', event)">
-            <i class="fas fa-users"></i> Participantes
-        </button>
-        <button class="nav-btn" onclick="showSection('registrar', event)">
-            <i class="fas fa-plus-circle"></i> Registrar
-        </button>
-        <button class="nav-btn" onclick="showSection('documentos', event)">
-            <i class="fas fa-folder-open"></i> Documentos
-        </button>
-        <button class="nav-btn" onclick="showSection('fotos', event)">
-            <i class="fas fa-images"></i> Fotos
-        </button>
-    </nav>
-
-    <div class="container">
-        <!-- SECTION: RANKING -->
-        <div id="ranking" class="section active">
-            <div class="period-info">
-                <span><i class="fas fa-calendar-alt"></i> Período de Avaliação: Últimos 30 dias</span>
-                <span id="currentDate"></span>
-            </div>
-            <div class="podium" id="podium"></div>
-            <div class="criteria-grid">
-                <div class="criteria-card a">
-                    <div class="criteria-header">
-                        <div class="criteria-badge">A</div>
-                        <div class="criteria-title">Trocas e Avarias</div>
-                    </div>
-                    <div class="criteria-desc">Menor número de trocas e avarias no período. Cuidado com o produto conta!</div>
+    <!-- MAIN APP -->
+    <div id="mainApp" style="display: none;">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="banana-deco banana-deco-1">🍌</div>
+            <div class="banana-deco banana-deco-2">🍌</div>
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="header-logo">ARMAZÉM <span>DAS</span> BANANAS</div>
+                    <div class="header-title">Desafio Boombox</div>
+                    <div class="header-badge"><i class="fas fa-trophy"></i> PRÊMIO: BOOMBOX</div>
                 </div>
-                <div class="criteria-card b">
-                    <div class="criteria-header">
-                        <div class="criteria-badge">B</div>
-                        <div class="criteria-title">Vendas Positivo</div>
+                <div class="header-user">
+                    <span id="userName">Ricardo</span>
+                    <span id="userRole" style="opacity: 0.8; font-size: 0.8rem;">(Admin)</span>
+                    <div class="notification-bell" onclick="toggleNotifications()" style="position: relative;">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="notifBadge" style="display: none;">0</span>
+                        <div class="notification-dropdown" id="notifDropdown">
+                            <div class="notification-dropdown-header">
+                                <span>Notificações</span>
+                                <button onclick="clearAllNotifications()">Limpar tudo</button>
+                            </div>
+                            <div id="notifList"></div>
+                        </div>
                     </div>
-                    <div class="criteria-desc">Crescimento nas vendas em relação ao período anterior. O número tem que estar no azul!</div>
-                </div>
-                <div class="criteria-card c">
-                    <div class="criteria-header">
-                        <div class="criteria-badge">C</div>
-                        <div class="criteria-title">Precedente Positivo</div>
-                    </div>
-                    <div class="criteria-desc">Quem mais atendeu solicitações da diretoria com ajuste de precedente positivo.</div>
-                </div>
-                <div class="criteria-card d">
-                    <div class="criteria-header">
-                        <div class="criteria-badge">D</div>
-                        <div class="criteria-title">Consulta de Preço</div>
-                    </div>
-                    <div class="criteria-desc">Maior número de consultas de preço no período. Prospecção e iniciativa fazem a diferença!</div>
+                    <button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Sair</button>
                 </div>
             </div>
-            <div class="card">
-                <div class="card-title"><i class="fas fa-list-ol"></i> Classificação Completa</div>
-                <div class="filter-bar">
-                    <button class="filter-btn active" onclick="filterRanking('all', event)">Todos</button>
-                    <button class="filter-btn" onclick="filterRanking('a', event)">Critério A</button>
-                    <button class="filter-btn" onclick="filterRanking('b', event)">Critério B</button>
-                    <button class="filter-btn" onclick="filterRanking('c', event)">Critério C</button>
-                    <button class="filter-btn" onclick="filterRanking('d', event)">Critério D</button>
+        </header>
+
+        <!-- NAV ADMIN -->
+        <nav class="nav admin-only" id="navAdmin">
+            <button class="nav-btn active" onclick="showSection('ranking')"><i class="fas fa-trophy"></i> Ranking</button>
+            <button class="nav-btn" onclick="showSection('participantes')"><i class="fas fa-users"></i> Participantes</button>
+            <button class="nav-btn" onclick="showSection('registrar')"><i class="fas fa-plus-circle"></i> Registrar</button>
+            <button class="nav-btn" onclick="showSection('documentos')"><i class="fas fa-folder-open"></i> Documentos</button>
+            <button class="nav-btn" onclick="showSection('fotos')"><i class="fas fa-images"></i> Fotos</button>
+            <button class="nav-btn" onclick="showSection('evolucao')"><i class="fas fa-chart-line"></i> Evolução</button>
+        </nav>
+
+        <!-- NAV PARTICIPANT -->
+        <nav class="nav participant-only" id="navParticipant">
+            <button class="nav-btn active" onclick="showSection('meu-ranking')"><i class="fas fa-chart-line"></i> Meu Ranking</button>
+            <button class="nav-btn" onclick="showSection('criterios')"><i class="fas fa-clipboard-list"></i> O Que Cumprir</button>
+            <button class="nav-btn" onclick="showSection('minha-evolucao')"><i class="fas fa-chart-area"></i> Minha Evolução</button>
+            <button class="nav-btn" onclick="showSection('ranking-geral')"><i class="fas fa-list-ol"></i> Ranking Geral</button>
+        </nav>
+
+        <div class="container">
+            <!-- ADMIN: RANKING -->
+            <div id="ranking" class="section active admin-only">
+                <div class="period-info">
+                    <span><i class="fas fa-calendar-alt"></i> Período de Avaliação: Últimos 30 dias</span>
+                    <span id="currentDate"></span>
                 </div>
-                <div style="overflow-x: auto;">
-                    <table class="ranking-table">
-                        <thead>
-                            <tr>
-                                <th>Posição</th>
-                                <th>Participante</th>
-                                <th>A</th><th>B</th><th>C</th><th>D</th>
-                                <th>Total</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="rankingTableBody"></tbody>
-                    </table>
+                <div class="podium" id="podium"></div>
+                <div class="card">
+                    <div class="card-banana">🍌</div>
+                    <div class="card-title"><i class="fas fa-list-ol"></i> Classificação Completa</div>
+                    <div class="filter-bar">
+                        <button class="filter-btn active" onclick="filterRanking('all')">Todos</button>
+                        <button class="filter-btn" onclick="filterRanking('a')">Critério A</button>
+                        <button class="filter-btn" onclick="filterRanking('b')">Critério B</button>
+                        <button class="filter-btn" onclick="filterRanking('c')">Critério C</button>
+                        <button class="filter-btn" onclick="filterRanking('d')">Critério D</button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="ranking-table">
+                            <thead>
+                                <tr>
+                                    <th>Pos</th>
+                                    <th>Participante</th>
+                                    <th>A <small style="opacity:0.7">(Trocas)</small></th>
+                                    <th>B <small style="opacity:0.7">(Vendas)</small></th>
+                                    <th>C <small style="opacity:0.7">(Precedentes)</small></th>
+                                    <th>D <small style="opacity:0.7">(Consultas)</small></th>
+                                    <th>Total</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rankingTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- SECTION: PARTICIPANTES -->
-        <div id="participantes" class="section">
-            <div class="card">
-                <div class="card-title"><i class="fas fa-users"></i> Gerenciar Participantes</div>
-                <div id="participantsList"></div>
+            <!-- ADMIN: PARTICIPANTES -->
+            <div id="participantes" class="section admin-only">
+                <div class="card">
+                    <div class="card-banana">🍌</div>
+                    <div class="card-title"><i class="fas fa-users"></i> Gerenciar Participantes</div>
+                    <div id="participantsList"></div>
+                </div>
             </div>
-        </div>
 
-        <!-- SECTION: REGISTRAR -->
-        <div id="registrar" class="section">
-            <div class="card">
-                <div class="card-title"><i class="fas fa-plus-circle"></i> Registrar Pontuação</div>
-                <form id="scoreForm" onsubmit="saveScore(event)">
-                    <div class="form-row">
+            <!-- ADMIN: REGISTRAR -->
+            <div id="registrar" class="section admin-only">
+                <div class="card">
+                    <div class="card-banana">🍌</div>
+                    <div class="card-title"><i class="fas fa-plus-circle"></i> Registrar Pontuação</div>
+                    <form id="scoreForm" onsubmit="saveScore(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Participante</label>
+                                <select id="scoreParticipant" required><option value="">Selecione...</option></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Data</label>
+                                <input type="date" id="scoreDate" required>
+                            </div>
+                        </div>
+                        <div class="score-inputs">
+                            <div class="score-input-group a">
+                                <label><i class="fas fa-shield-alt"></i> Trocas/Avarias (Menor = Melhor)</label>
+                                <input type="number" id="scoreA" min="0" placeholder="0" required>
+                            </div>
+                            <div class="score-input-group b">
+                                <label><i class="fas fa-chart-line"></i> Vendas Positivo (%)</label>
+                                <input type="number" id="scoreB" step="0.1" placeholder="0.0" required>
+                            </div>
+                            <div class="score-input-group c">
+                                <label><i class="fas fa-star"></i> Precedentes Atendidos</label>
+                                <input type="number" id="scoreC" min="0" placeholder="0" required>
+                            </div>
+                            <div class="score-input-group d">
+                                <label><i class="fas fa-search-dollar"></i> Consultas de Preço</label>
+                                <input type="number" id="scoreD" min="0" placeholder="0" required>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-top: 20px;">
+                            <label>Observações</label>
+                            <textarea id="scoreNotes" rows="3" placeholder="Detalhes adicionais..."></textarea>
+                        </div>
                         <div class="form-group">
-                            <label>Participante</label>
-                            <select id="scoreParticipant" required><option value="">Selecione...</option></select>
+                            <label>Anexar Comprovantes</label>
+                            <div class="upload-area" onclick="document.getElementById('scoreFiles').click()">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <h3>Clique para anexar arquivos</h3>
+                                <p>Fotos, planilhas, documentos PDF</p>
+                            </div>
+                            <input type="file" id="scoreFiles" multiple onchange="handleFileSelect(this, 'scoreFileList')">
+                            <div class="file-list" id="scoreFileList"></div>
                         </div>
-                        <div class="form-group">
-                            <label>Data</label>
-                            <input type="date" id="scoreDate" required>
-                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Registro</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-history"></i> Histórico de Registros</div>
+                    <div id="scoreHistory"></div>
+                </div>
+            </div>
+
+            <!-- ADMIN: DOCUMENTOS -->
+            <div id="documentos" class="section admin-only">
+                <div class="card">
+                    <div class="card-banana">🍌</div>
+                    <div class="card-title"><i class="fas fa-folder-open"></i> Documentos e Comprovantes</div>
+                    <div class="upload-area" onclick="document.getElementById('docFiles').click()">
+                        <i class="fas fa-file-upload"></i>
+                        <h3>Enviar Documentos</h3>
+                        <p>PDF, Excel, Word, Imagens</p>
                     </div>
-                    <div class="score-inputs">
-                        <div class="score-input-group a">
-                            <label><i class="fas fa-shield-alt"></i> Trocas/Avarias (Menor = Melhor)</label>
-                            <input type="number" id="scoreA" min="0" placeholder="0" required>
-                        </div>
-                        <div class="score-input-group b">
-                            <label><i class="fas fa-chart-line"></i> Vendas Positivo (%)</label>
-                            <input type="number" id="scoreB" step="0.1" placeholder="0.0" required>
-                        </div>
-                        <div class="score-input-group c">
-                            <label><i class="fas fa-check-circle"></i> Precedentes Atendidos</label>
-                            <input type="number" id="scoreC" min="0" placeholder="0" required>
-                        </div>
-                        <div class="score-input-group d">
-                            <label><i class="fas fa-search-dollar"></i> Consultas de Preço</label>
-                            <input type="number" id="scoreD" min="0" placeholder="0" required>
-                        </div>
+                    <input type="file" id="docFiles" multiple onchange="handleDocUpload(this)">
+                    <div id="documentsList" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+
+            <!-- ADMIN: FOTOS -->
+            <div id="fotos" class="section admin-only">
+                <div class="card">
+                    <div class="card-banana">🍌</div>
+                    <div class="card-title"><i class="fas fa-images"></i> Galeria de Fotos</div>
+                    <div class="upload-area" onclick="document.getElementById('photoFiles').click()">
+                        <i class="fas fa-camera"></i>
+                        <h3>Adicionar Fotos</h3>
+                        <p>JPG, PNG, WEBP</p>
                     </div>
-                    <div class="form-group" style="margin-top: 20px;">
-                        <label>Observações</label>
-                        <textarea id="scoreNotes" rows="3" placeholder="Detalhes adicionais..."></textarea>
-                    </div>
+                    <input type="file" id="photoFiles" multiple accept="image/*" onchange="handlePhotoUpload(this)">
+                    <div class="gallery" id="photoGallery"></div>
+                </div>
+            </div>
+            <!-- ADMIN: EVOLUÇÃO -->
+            <div id="evolucao" class="section admin-only">
+                <div class="card">
+                    <div class="card-banana">🍌</div>
+                    <div class="card-title"><i class="fas fa-chart-line"></i> Evolução do Ranking</div>
+                    <p style="color: var(--gray-dark); margin-bottom: 20px;">Acompanhe a evolução das pontuações ao longo do tempo.</p>
                     <div class="form-group">
-                        <label>Anexar Comprovantes</label>
-                        <div class="upload-area" onclick="document.getElementById('scoreFiles').click()">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <h3>Clique para anexar arquivos</h3>
-                            <p>Fotos, planilhas, documentos PDF</p>
-                        </div>
-                        <input type="file" id="scoreFiles" multiple onchange="handleFileSelect(this, 'scoreFileList')">
-                        <div class="file-list" id="scoreFileList"></div>
+                        <label>Selecionar Participante</label>
+                        <select id="evolutionParticipant" onchange="renderAdminEvolution()">
+                            <option value="all">Todos os participantes</option>
+                        </select>
                     </div>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Registro</button>
-                </form>
-            </div>
-            <div class="card">
-                <div class="card-title"><i class="fas fa-history"></i> Histórico de Registros</div>
-                <div id="scoreHistory"></div>
-            </div>
-        </div>
-
-        <!-- SECTION: DOCUMENTOS -->
-        <div id="documentos" class="section">
-            <div class="card">
-                <div class="card-title"><i class="fas fa-folder-open"></i> Documentos e Comprovantes</div>
-                <div class="upload-area" onclick="document.getElementById('docFiles').click()">
-                    <i class="fas fa-file-upload"></i>
-                    <h3>Enviar Documentos</h3>
-                    <p>PDF, Excel, Word, Imagens</p>
+                    <div class="card" style="background: var(--gray);">
+                        <div class="card-title" style="font-size: 1rem;"><i class="fas fa-chart-area"></i> Evolução do Score Total</div>
+                        <div class="chart-container" id="adminEvolutionChart">
+                            <svg class="chart-svg" viewBox="0 0 800 300" preserveAspectRatio="none"></svg>
+                            <div class="chart-tooltip" id="adminChartTooltip"></div>
+                        </div>
+                        <div class="chart-legend" id="adminChartLegend"></div>
+                    </div>
+                    <div class="card" style="background: var(--gray); margin-top: 20px;">
+                        <div class="card-title" style="font-size: 1rem;"><i class="fas fa-chart-bar"></i> Comparação por Critério (Último Registro)</div>
+                        <div class="bar-chart" id="adminBarChart"></div>
+                    </div>
                 </div>
-                <input type="file" id="docFiles" multiple onchange="handleDocUpload(this)">
-                <div id="documentsList" style="margin-top: 20px;"></div>
             </div>
-        </div>
 
-        <!-- SECTION: FOTOS -->
-        <div id="fotos" class="section">
-            <div class="card">
-                <div class="card-title"><i class="fas fa-images"></i> Galeria de Fotos</div>
-                <div class="upload-area" onclick="document.getElementById('photoFiles').click()">
-                    <i class="fas fa-camera"></i>
-                    <h3>Adicionar Fotos</h3>
-                    <p>JPG, PNG, WEBP</p>
+            <!-- PARTICIPANT: MEU RANKING -->
+            <div id="meu-ranking" class="section active participant-only">
+                <div class="participant-selector">
+                    <select id="participantSelect" onchange="loadParticipantDashboard()">
+                        <option value="">Selecione seu nome...</option>
+                    </select>
                 </div>
-                <input type="file" id="photoFiles" multiple accept="image/*" onchange="handlePhotoUpload(this)">
-                <div class="gallery" id="photoGallery"></div>
+                <div id="participantDashboard" style="display: none;">
+                    <div class="participant-dashboard">
+                        <div class="position-card" id="positionCard">
+                            <div class="position-label">Sua Posição no Ranking</div>
+                            <div class="position-number" id="positionNumber">--<small>º</small></div>
+                            <div class="position-name" id="positionName">Selecione seu nome</div>
+                            <div class="position-area" id="positionArea">--</div>
+                            <div class="position-total">
+                                <div class="position-stat">
+                                    <div class="value" id="totalScore">--</div>
+                                    <div class="label">Pontos Totais</div>
+                                </div>
+                                <div class="position-stat">
+                                    <div class="value" id="totalParticipants">--</div>
+                                    <div class="label">Participantes</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-title"><i class="fas fa-exchange-alt"></i> Sua Tendência</div>
+                            <div class="comparison-grid" id="trendGrid"></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-title"><i class="fas fa-bullseye"></i> Seu Progresso</div>
+                            <div class="progress-ring-container">
+                                <div class="progress-ring">
+                                    <svg width="150" height="150">
+                                        <circle class="progress-ring-bg" cx="75" cy="75" r="65"></circle>
+                                        <circle class="progress-ring-fill" id="progressCircle" cx="75" cy="75" r="65" stroke-dasharray="408.4" stroke-dashoffset="408.4"></circle>
+                                    </svg>
+                                    <div class="progress-ring-text">
+                                        <div class="number" id="progressPercent">0%</div>
+                                        <div class="label">do objetivo</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="quick-tip">
+                                <i class="fas fa-lightbulb"></i>
+                                <p><strong>Dica:</strong> Você precisa dominar os 4 critérios para levar a Boombox pra casa! Foque no critério com menor pontuação.</p>
+                            </div>
+                        </div>
+                        <div class="what-to-do">
+                            <div class="what-to-do-header">
+                                <div class="what-to-do-icon">🎯</div>
+                                <div>
+                                    <div class="what-to-do-title">O Que Você Precisa Fazer</div>
+                                    <div class="what-to-do-subtitle">Cumpra esses 4 critérios para pontuar</div>
+                                </div>
+                            </div>
+                            <div class="criteria-list" id="participantCriteriaList"></div>
+                        </div>
+                        <div class="precedent-highlight">
+                            <div class="card-title"><i class="fas fa-star"></i> Seus Precedentes (Critério C)</div>
+                            <div class="precedent-count" id="precedentCount">--</div>
+                            <div class="precedent-label">precedentes positivos atendidos</div>
+                            <div class="quick-tip" style="margin-top: 15px;">
+                                <i class="fas fa-info-circle"></i>
+                                <p>Quanto mais solicitações da diretoria você atender com <strong>ajuste de precedente positivo</strong>, mais pontos você ganha. Alinhamento com a gestão conta muito!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- PARTICIPANT: O QUE CUMPRIR -->
+            <div id="criterios" class="section participant-only">
+                <div class="card">
+                    <div class="card-banana">🍌</div>
+                    <div class="card-title"><i class="fas fa-clipboard-list"></i> Os 4 Critérios do Desafio</div>
+                    <p style="margin-bottom: 20px; color: var(--gray-dark);">Entenda o que está sendo medido e o que você precisa entregar em cada critério. <strong>Domine os 4 e leve a Boombox pra casa!</strong></p>
+                    <div class="criteria-explain-grid">
+                        <div class="criteria-explain-card a">
+                            <span class="emoji">🛡️</span>
+                            <h3>Trocas e Avarias <span class="badge">CRITÉRIO A</span></h3>
+                            <p>Menor número de trocas e avarias no período de avaliação.</p>
+                            <div class="analogy"><i class="fas fa-quote-left" style="color: var(--yellow); margin-right: 5px;"></i>"Cuide do produto como se fosse seu. Quanto menos quebra e troca, melhor."</div>
+                        </div>
+                        <div class="criteria-explain-card b">
+                            <span class="emoji">📈</span>
+                            <h3>Vendas Positivo <span class="badge">CRITÉRIO B</span></h3>
+                            <p>Crescimento nas vendas em relação ao período anterior.</p>
+                            <div class="analogy"><i class="fas fa-quote-left" style="color: var(--yellow); margin-right: 5px;"></i>"Venda mais que no mês passado. O número tem que estar no azul!"</div>
+                        </div>
+                        <div class="criteria-explain-card c">
+                            <span class="emoji">⭐</span>
+                            <h3>Precedente Positivo <span class="badge">CRITÉRIO C</span></h3>
+                            <p>Atendimento às solicitações da diretoria com ajuste de precedente positivo.</p>
+                            <div class="analogy"><i class="fas fa-quote-left" style="color: var(--yellow); margin-right: 5px;"></i>"Atenda os pedidos da diretoria. Quanto mais precedentes positivos, mais pontos."</div>
+                        </div>
+                        <div class="criteria-explain-card d">
+                            <span class="emoji">🔍</span>
+                            <h3>Consulta de Preço <span class="badge">CRITÉRIO D</span></h3>
+                            <p>Maior número de consultas de preço no período.</p>
+                            <div class="analogy"><i class="fas fa-quote-left" style="color: var(--yellow); margin-right: 5px;"></i>"Prospecção e iniciativa. Quanto mais consultas de preço, melhor."</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-trophy"></i> Como Funciona</div>
+                    <div style="display: grid; gap: 15px;">
+                        <div class="quick-tip">
+                            <i class="fas fa-1" style="background: var(--green); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0;"></i>
+                            <p>O período de avaliação são os <strong>últimos 30 dias</strong>. Sempre que o gestor registrar uma pontuação, ela entra no cálculo.</p>
+                        </div>
+                        <div class="quick-tip">
+                            <i class="fas fa-2" style="background: var(--yellow); color: var(--black); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0;"></i>
+                            <p>Cada critério vale pontos. <strong>Quem domina os 4 critérios leva a Boombox pra casa!</strong></p>
+                        </div>
+                        <div class="quick-tip">
+                            <i class="fas fa-3" style="background: var(--orange); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0;"></i>
+                            <p>Acompanhe seu progresso na aba <strong>"Meu Ranking"</strong>. Lá você vê exatamente onde precisa melhorar.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PARTICIPANT: MINHA EVOLUÇÃO -->
+            <div id="minha-evolucao" class="section participant-only">
+                <div class="participant-selector">
+                    <select id="evolutionParticipantSelect" onchange="loadParticipantEvolution()">
+                        <option value="">Selecione seu nome...</option>
+                    </select>
+                </div>
+                <div id="evolutionDashboard" style="display: none;">
+                    <div class="card">
+                        <div class="card-banana">🍌</div>
+                        <div class="card-title"><i class="fas fa-chart-area"></i> Sua Evolução ao Longo do Tempo</div>
+                        <p style="color: var(--gray-dark); margin-bottom: 20px;">Veja como sua pontuação total evoluiu nos últimos registros.</p>
+                        <div class="card" style="background: var(--gray);">
+                            <div class="chart-container" id="participantLineChart">
+                                <svg class="chart-svg" viewBox="0 0 800 300" preserveAspectRatio="none"></svg>
+                                <div class="chart-tooltip" id="participantChartTooltip"></div>
+                            </div>
+                            <div class="chart-legend">
+                                <div class="chart-legend-item">
+                                    <div class="chart-legend-color" style="background: var(--green);"></div>
+                                    <span>Score Total</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-chart-bar"></i> Desempenho por Critério</div>
+                        <div class="bar-chart" id="participantBarChart"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-history"></i> Histórico Detalhado</div>
+                        <div id="participantHistoryList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PARTICIPANT: RANKING GERAL -->
+            <div id="ranking-geral" class="section participant-only">
+                <div class="period-info">
+                    <span><i class="fas fa-calendar-alt"></i> Período: Últimos 30 dias</span>
+                    <span id="currentDate2"></span>
+                </div>
+                <div class="podium" id="podiumParticipant"></div>
+                <div class="card">
+                    <div class="card-banana">🍌</div>
+                    <div class="card-title"><i class="fas fa-list-ol"></i> Classificação Geral</div>
+                    <div style="overflow-x: auto;">
+                        <table class="ranking-table">
+                            <thead>
+                                <tr>
+                                    <th>Pos</th>
+                                    <th>Participante</th>
+                                    <th>Pontos</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rankingTableParticipant"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -350,19 +831,27 @@
     <div class="modal-overlay" id="participantModal">
         <div class="modal">
             <div class="modal-header">
-                <h2>Detalhes do Participante</h2>
+                <h2 id="modalTitle">Detalhes</h2>
                 <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <div class="modal-body" id="modalBody"></div>
         </div>
     </div>
 
+    <!-- PUSH PERMISSION BUTTON -->
+    <button class="push-permission-btn hidden" id="pushPermissionBtn" onclick="requestPushPermission()">
+        <i class="fas fa-bell"></i> Ativar Notificações
+    </button>
     <script>
+        // ==================== DATA STORAGE ====================
         const STORAGE_KEYS = {
             PARTICIPANTS: 'boombox_participants',
             SCORES: 'boombox_scores',
             DOCUMENTS: 'boombox_documents',
-            PHOTOS: 'boombox_photos'
+            PHOTOS: 'boombox_photos',
+            CURRENT_USER: 'boombox_current_user',
+            NOTIFICATIONS: 'boombox_notifications',
+            LAST_RANKING: 'boombox_last_ranking'
         };
 
         const defaultParticipants = [
@@ -374,37 +863,193 @@
         ];
 
         const defaultScores = [
-            { id: 1, participantId: 1, date: '2026-06-15', a: 2, b: 15.5, c: 8, d: 45, notes: 'Bom desempenho geral' },
-            { id: 2, participantId: 2, date: '2026-06-15', a: 1, b: 22.3, c: 12, d: 38, notes: 'Excelente em vendas' },
-            { id: 3, participantId: 3, date: '2026-06-15', a: 3, b: 8.7, c: 5, d: 52, notes: 'Muitas consultas' },
-            { id: 4, participantId: 4, date: '2026-06-15', a: 0, b: 18.9, c: 10, d: 41, notes: 'Sem trocas!' },
-            { id: 5, participantId: 5, date: '2026-06-15', a: 4, b: 12.4, c: 7, d: 35, notes: 'Regular' }
+            { id: 1, participantId: 1, date: '2026-06-01', a: 3, b: 10.2, c: 5, d: 30, notes: 'Início do mês' },
+            { id: 2, participantId: 1, date: '2026-06-08', a: 2, b: 12.5, c: 7, d: 38, notes: 'Melhorou' },
+            { id: 3, participantId: 1, date: '2026-06-15', a: 2, b: 15.5, c: 8, d: 45, notes: 'Bom desempenho' },
+            { id: 4, participantId: 2, date: '2026-06-01', a: 2, b: 18.0, c: 8, d: 25, notes: 'Início' },
+            { id: 5, participantId: 2, date: '2026-06-08', a: 1, b: 20.5, c: 10, d: 32, notes: 'Ótimo' },
+            { id: 6, participantId: 2, date: '2026-06-15', a: 1, b: 22.3, c: 12, d: 38, notes: 'Excelente' },
+            { id: 7, participantId: 3, date: '2026-06-01', a: 4, b: 5.0, c: 2, d: 40, notes: 'Início' },
+            { id: 8, participantId: 3, date: '2026-06-08', a: 3, b: 7.2, c: 4, d: 48, notes: 'Subindo' },
+            { id: 9, participantId: 3, date: '2026-06-15', a: 3, b: 8.7, c: 5, d: 52, notes: 'Muitas consultas' },
+            { id: 10, participantId: 4, date: '2026-06-01', a: 1, b: 15.0, c: 6, d: 30, notes: 'Início' },
+            { id: 11, participantId: 4, date: '2026-06-08', a: 0, b: 17.2, c: 8, d: 36, notes: 'Sem trocas!' },
+            { id: 12, participantId: 4, date: '2026-06-15', a: 0, b: 18.9, c: 10, d: 41, notes: 'Perfeito' },
+            { id: 13, participantId: 5, date: '2026-06-01', a: 5, b: 8.0, c: 3, d: 20, notes: 'Início' },
+            { id: 14, participantId: 5, date: '2026-06-08', a: 4, b: 10.5, c: 5, d: 28, notes: 'Regular' },
+            { id: 15, participantId: 5, date: '2026-06-15', a: 4, b: 12.4, c: 7, d: 35, notes: 'Melhorando' }
         ];
+
+        let currentProfile = null;
+        let selectedParticipantId = null;
+        let pushEnabled = false;
 
         function initData() {
             if (!localStorage.getItem(STORAGE_KEYS.PARTICIPANTS)) localStorage.setItem(STORAGE_KEYS.PARTICIPANTS, JSON.stringify(defaultParticipants));
             if (!localStorage.getItem(STORAGE_KEYS.SCORES)) localStorage.setItem(STORAGE_KEYS.SCORES, JSON.stringify(defaultScores));
             if (!localStorage.getItem(STORAGE_KEYS.DOCUMENTS)) localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify([]));
             if (!localStorage.getItem(STORAGE_KEYS.PHOTOS)) localStorage.setItem(STORAGE_KEYS.PHOTOS, JSON.stringify([]));
+            if (!localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
         }
 
         function getData(key) { return JSON.parse(localStorage.getItem(key) || '[]'); }
         function setData(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+        // ==================== NOTIFICATIONS ====================
+        function showToast(title, message, type = 'success', duration = 5000) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icons = { success: 'fa-check-circle', warning: 'fa-exclamation-triangle', danger: 'fa-times-circle', info: 'fa-info-circle' };
+            toast.innerHTML = `<div class="toast-icon"><i class="fas ${icons[type]}"></i></div><div class="toast-content"><h4>${title}</h4><p>${message}</p></div><button class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>`;
+            container.appendChild(toast);
+            if (duration > 0) { setTimeout(() => { toast.classList.add('removing'); setTimeout(() => toast.remove(), 300); }, duration); }
+        }
 
-        function showSection(sectionId, evt) {
+        function addNotification(title, message, type = 'new') {
+            const notifs = getData(STORAGE_KEYS.NOTIFICATIONS);
+            notifs.unshift({ id: Date.now(), title, message, type, date: new Date().toISOString(), read: false });
+            setData(STORAGE_KEYS.NOTIFICATIONS, notifs.slice(0, 50));
+            updateNotificationBadge();
+            return notifs[0];
+        }
+
+        function getUnreadCount() { return getData(STORAGE_KEYS.NOTIFICATIONS).filter(n => !n.read).length; }
+
+        function updateNotificationBadge() {
+            const badge = document.getElementById('notifBadge');
+            const count = getUnreadCount();
+            badge.textContent = count;
+            badge.style.display = count > 0 ? 'flex' : 'none';
+        }
+
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notifDropdown');
+            dropdown.classList.toggle('active');
+            if (dropdown.classList.contains('active')) renderNotifications();
+        }
+
+        function renderNotifications() {
+            const notifs = getData(STORAGE_KEYS.NOTIFICATIONS);
+            const list = document.getElementById('notifList');
+            if (notifs.length === 0) { list.innerHTML = '<div style="padding: 30px; text-align: center; color: #888;">Nenhuma notificação</div>'; return; }
+            const icons = { up: 'fa-arrow-up', down: 'fa-arrow-down', new: 'fa-bell' };
+            list.innerHTML = notifs.map(n => `<div class="notification-item ${n.read ? '' : 'unread'}" onclick="markNotificationRead(${n.id})"><div class="notification-item-icon ${n.type}"><i class="fas ${icons[n.type] || 'fa-bell'}"></i></div><div class="notification-item-content"><p><strong>${n.title}</strong></p><p>${n.message}</p><div class="time">${new Date(n.date).toLocaleString('pt-BR')}</div></div></div>`).join('');
+        }
+
+        function markNotificationRead(id) {
+            const notifs = getData(STORAGE_KEYS.NOTIFICATIONS);
+            const n = notifs.find(x => x.id === id);
+            if (n) n.read = true;
+            setData(STORAGE_KEYS.NOTIFICATIONS, notifs);
+            renderNotifications();
+            updateNotificationBadge();
+        }
+
+        function clearAllNotifications() {
+            setData(STORAGE_KEYS.NOTIFICATIONS, []);
+            renderNotifications();
+            updateNotificationBadge();
+        }
+
+        function checkRankingChanges() {
+            const currentRanking = calculateRanking();
+            const lastRanking = JSON.parse(localStorage.getItem(STORAGE_KEYS.LAST_RANKING) || '[]');
+            if (lastRanking.length === 0) {
+                localStorage.setItem(STORAGE_KEYS.LAST_RANKING, JSON.stringify(currentRanking.map(p => ({ id: p.id, position: currentRanking.indexOf(p) + 1 }))));
+                return;
+            }
+            currentRanking.forEach((p, index) => {
+                const newPos = index + 1;
+                const lastEntry = lastRanking.find(l => l.id === p.id);
+                if (lastEntry) {
+                    const diff = lastEntry.position - newPos;
+                    if (diff > 0) { addNotification(`${p.name} subiu ${diff} posição!`, `${p.name} agora está em ${newPos}º lugar no ranking. Continue assim!`, 'up'); showToast('Ranking atualizado!', `${p.name} subiu ${diff} posição! 🚀`, 'success'); }
+                    else if (diff < 0) { addNotification(`${p.name} desceu ${Math.abs(diff)} posição`, `${p.name} agora está em ${newPos}º lugar. Hora de reagir!`, 'down'); }
+                }
+            });
+            localStorage.setItem(STORAGE_KEYS.LAST_RANKING, JSON.stringify(currentRanking.map(p => ({ id: p.id, position: currentRanking.indexOf(p) + 1 }))));
+            updateNotificationBadge();
+        }
+
+        // ==================== PUSH NOTIFICATIONS ====================
+        function requestPushPermission() {
+            if (!('Notification' in window)) { showToast('Erro', 'Seu navegador não suporta notificações', 'danger'); return; }
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    pushEnabled = true;
+                    document.getElementById('pushPermissionBtn').classList.add('hidden');
+                    showToast('Notificações ativadas!', 'Você receberá alertas quando o ranking mudar.', 'success');
+                    setTimeout(() => { new Notification('Desafio Boombox 🍌', { body: 'Notificações ativadas! Você será alertado sobre mudanças no ranking.', icon: '🍌' }); }, 1000);
+                } else { showToast('Atenção', 'Permissão negada. As notificações internas ainda funcionam.', 'warning'); }
+            });
+        }
+
+        function sendPushNotification(title, body) {
+            if (!pushEnabled || Notification.permission !== 'granted') return;
+            new Notification(title, { body: body, icon: '🍌', badge: '🍌' });
+        }
+        // ==================== LOGIN / PROFILE ====================
+        function selectProfile(profile) {
+            currentProfile = profile;
+            document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById('btn' + (profile === 'admin' ? 'Admin' : 'Participant')).classList.add('selected');
+            document.getElementById('loginBtn').disabled = false;
+        }
+
+        function doLogin() {
+            if (!currentProfile) return;
+            const userName = currentProfile === 'admin' ? 'Ricardo' : 'Vendedor';
+            document.getElementById('userName').textContent = userName;
+            document.getElementById('userRole').textContent = currentProfile === 'admin' ? '(Gestor)' : '(Vendedor)';
+            document.body.className = currentProfile === 'admin' ? 'admin-view' : 'participant-view';
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            setData(STORAGE_KEYS.CURRENT_USER, { profile: currentProfile, name: userName });
+            if (currentProfile === 'participant' && 'Notification' in window && Notification.permission === 'default') {
+                document.getElementById('pushPermissionBtn').classList.remove('hidden');
+            }
+            if (currentProfile === 'admin') {
+                renderRanking(); renderParticipants(); initScoreForm(); renderDocuments(); renderPhotos(); initAdminEvolution();
+            } else {
+                initParticipantSelect(); initEvolutionSelect(); loadParticipantDashboard(); renderParticipantRanking();
+            }
+            const today = new Date();
+            document.getElementById('currentDate').textContent = today.toLocaleDateString('pt-BR');
+            document.getElementById('currentDate2').textContent = today.toLocaleDateString('pt-BR');
+            updateNotificationBadge();
+            showToast(`Bem-vindo, ${userName}!`, currentProfile === 'admin' ? 'Acesso administrativo ativado.' : 'Acompanhe seu desempenho no desafio!', 'success');
+        }
+
+        function logout() {
+            currentProfile = null; selectedParticipantId = null;
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('mainApp').style.display = 'none';
+            document.body.className = '';
+            document.getElementById('pushPermissionBtn').classList.add('hidden');
+            localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        }
+
+        // ==================== NAVIGATION ====================
+        function showSection(sectionId) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(sectionId).classList.add('active');
-            if (evt) evt.target.closest('.nav-btn').classList.add('active');
+            const section = document.getElementById(sectionId);
+            if (section) section.classList.add('active');
+            const btn = event?.target?.closest('.nav-btn');
+            if (btn) btn.classList.add('active');
             if (sectionId === 'ranking') renderRanking();
+            if (sectionId === 'ranking-geral') renderParticipantRanking();
             if (sectionId === 'participantes') renderParticipants();
             if (sectionId === 'registrar') initScoreForm();
             if (sectionId === 'documentos') renderDocuments();
             if (sectionId === 'fotos') renderPhotos();
+            if (sectionId === 'evolucao') renderAdminEvolution();
+            if (sectionId === 'meu-ranking') loadParticipantDashboard();
+            if (sectionId === 'minha-evolucao') loadParticipantEvolution();
         }
 
-        function calculateRanking(filter) {
-            filter = filter || 'all';
+        // ==================== RANKING CALCULATION ====================
+        function calculateRanking() {
             const participants = getData(STORAGE_KEYS.PARTICIPANTS).filter(p => p.active);
             const scores = getData(STORAGE_KEYS.SCORES);
             const thirtyDaysAgo = new Date();
@@ -421,13 +1066,126 @@
                 const scoreB = Math.min(100, avgB * 2);
                 const scoreC = Math.min(100, avgC * 5);
                 const scoreD = Math.min(100, avgD * 1.5);
-                let total = scoreA + scoreB + scoreC + scoreD;
-                if (filter !== 'all') { const map = { 'a': scoreA, 'b': scoreB, 'c': scoreC, 'd': scoreD }; total = map[filter]; }
-                participantScores[p.id] = { a: scoreA.toFixed(1), b: scoreB.toFixed(1), c: scoreC.toFixed(1), d: scoreD.toFixed(1), total: total.toFixed(1) };
+                participantScores[p.id] = { a: scoreA.toFixed(1), b: scoreB.toFixed(1), c: scoreC.toFixed(1), d: scoreD.toFixed(1), total: (scoreA + scoreB + scoreC + scoreD).toFixed(1) };
             });
             return participants.map(p => ({ ...p, scores: participantScores[p.id] || { a: 0, b: 0, c: 0, d: 0, total: 0 } })).sort((a, b) => parseFloat(b.scores.total) - parseFloat(a.scores.total));
         }
+        // ==================== CHARTS ====================
+        function createLineChart(containerId, data, colors) {
+            const container = document.getElementById(containerId);
+            const svg = container.querySelector('svg');
+            const tooltip = container.querySelector('.chart-tooltip');
+            if (data.length === 0) { svg.innerHTML = '<text x="400" y="150" text-anchor="middle" fill="#888" font-size="14">Sem dados suficientes</text>'; return; }
+            const width = 800, height = 300;
+            const padding = { top: 20, right: 30, bottom: 40, left: 50 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            const allValues = data.flatMap(d => d.values);
+            const maxValue = Math.max(...allValues, 100);
+            const minValue = Math.min(...allValues, 0);
+            const xScale = (i) => padding.left + (i / (data[0].values.length - 1 || 1)) * chartWidth;
+            const yScale = (v) => padding.top + chartHeight - ((v - minValue) / (maxValue - minValue)) * chartHeight;
+            let svgContent = '';
+            for (let i = 0; i <= 5; i++) {
+                const y = padding.top + (i / 5) * chartHeight;
+                const value = maxValue - (i / 5) * (maxValue - minValue);
+                svgContent += `<line class="chart-grid-line" x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}"/>`;
+                svgContent += `<text class="chart-axis-text" x="${padding.left - 10}" y="${y + 4}" text-anchor="end">${Math.round(value)}</text>`;
+            }
+            data[0].labels.forEach((label, i) => { svgContent += `<text class="chart-axis-text" x="${xScale(i)}" y="${height - 10}" text-anchor="middle">${label}</text>`; });
+            data.forEach((series, si) => {
+                const color = colors[si % colors.length];
+                let areaPath = `M ${xScale(0)} ${padding.top + chartHeight}`;
+                series.values.forEach((v, i) => { areaPath += ` L ${xScale(i)} ${yScale(v)}`; });
+                areaPath += ` L ${xScale(series.values.length - 1)} ${padding.top + chartHeight} Z`;
+                svgContent += `<path class="chart-area" d="${areaPath}" fill="${color}" opacity="0.15"/>`;
+                let linePath = '';
+                series.values.forEach((v, i) => { linePath += (i === 0 ? 'M' : 'L') + ` ${xScale(i)} ${yScale(v)}`; });
+                svgContent += `<path class="chart-line" d="${linePath}" stroke="${color}" stroke-width="3" fill="none"/>`;
+                series.values.forEach((v, i) => { svgContent += `<circle class="chart-dot" cx="${xScale(i)}" cy="${yScale(v)}" r="5" fill="${color}" stroke="white" stroke-width="2" onmouseover="showChartTooltip(event, '${series.name}: ${series.labels[i]}', '${v} pts')" onmouseout="hideChartTooltip('${containerId}')"/>`; });
+            });
+            svg.innerHTML = svgContent;
+        }
 
+        function showChartTooltip(event, label, value) {
+            const tooltip = event.target.closest('.chart-container').querySelector('.chart-tooltip');
+            tooltip.innerHTML = `<strong>${label}</strong><br>${value}`;
+            tooltip.classList.add('visible');
+            const rect = event.target.getBoundingClientRect();
+            const containerRect = event.target.closest('.chart-container').getBoundingClientRect();
+            tooltip.style.left = (rect.left - containerRect.left + 10) + 'px';
+            tooltip.style.top = (rect.top - containerRect.top - 40) + 'px';
+        }
+
+        function hideChartTooltip(containerId) { document.getElementById(containerId).querySelector('.chart-tooltip').classList.remove('visible'); }
+
+        function createBarChart(containerId, data) {
+            const container = document.getElementById(containerId);
+            const maxValue = Math.max(...data.map(d => d.value), 1);
+            container.innerHTML = data.map(d => `<div class="bar-chart-item"><div class="bar-chart-bar" style="height: ${(d.value / maxValue) * 100}%; background: ${d.color};" data-value="${d.value}"></div><div class="bar-chart-label">${d.label}</div></div>`).join('');
+        }
+
+        // ==================== ADMIN: EVOLUTION ====================
+        function initAdminEvolution() {
+            const participants = getData(STORAGE_KEYS.PARTICIPANTS).filter(p => p.active);
+            const select = document.getElementById('evolutionParticipant');
+            select.innerHTML = '<option value="all">Todos os participantes</option>' + participants.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        }
+
+        function renderAdminEvolution() {
+            const participantId = document.getElementById('evolutionParticipant').value;
+            const scores = getData(STORAGE_KEYS.SCORES);
+            const participants = getData(STORAGE_KEYS.PARTICIPANTS);
+            let chartData = [];
+            const colors = ['#00a651', '#ffc72c', '#ff9800', '#2196f3', '#9c27b0'];
+            if (participantId === 'all') {
+                const topParticipants = calculateRanking().slice(0, 3);
+                chartData = topParticipants.map((p, i) => {
+                    const pScores = scores.filter(s => s.participantId === p.id).sort((a, b) => new Date(a.date) - new Date(b.date));
+                    return { name: p.name, values: pScores.map(s => parseFloat((parseFloat(s.a) + parseFloat(s.b) + parseFloat(s.c) + parseFloat(s.d)).toFixed(1))), labels: pScores.map(s => new Date(s.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })) };
+                });
+            } else {
+                const p = participants.find(x => x.id === parseInt(participantId));
+                const pScores = scores.filter(s => s.participantId === parseInt(participantId)).sort((a, b) => new Date(a.date) - new Date(b.date));
+                chartData = [{ name: p.name, values: pScores.map(s => parseFloat((parseFloat(s.a) + parseFloat(s.b) + parseFloat(s.c) + parseFloat(s.d)).toFixed(1))), labels: pScores.map(s => new Date(s.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })) }];
+            }
+            createLineChart('adminEvolutionChart', chartData, colors);
+            document.getElementById('adminChartLegend').innerHTML = chartData.map((d, i) => `<div class="chart-legend-item"><div class="chart-legend-color" style="background: ${colors[i]};"></div><span>${d.name}</span></div>`).join('');
+            const latestScores = {};
+            scores.forEach(s => { if (!latestScores[s.participantId] || new Date(s.date) > new Date(latestScores[s.participantId].date)) latestScores[s.participantId] = s; });
+            const barData = [{ label: 'A', value: 0, color: '#00a651' }, { label: 'B', value: 0, color: '#ffc72c' }, { label: 'C', value: 0, color: '#ff9800' }, { label: 'D', value: 0, color: '#008c44' }];
+            const relevantScores = participantId === 'all' ? Object.values(latestScores) : [latestScores[parseInt(participantId)]].filter(Boolean);
+            if (relevantScores.length > 0) {
+                barData[0].value = Math.round(relevantScores.reduce((s, x) => s + x.a, 0) / relevantScores.length);
+                barData[1].value = Math.round(relevantScores.reduce((s, x) => s + x.b, 0) / relevantScores.length);
+                barData[2].value = Math.round(relevantScores.reduce((s, x) => s + x.c, 0) / relevantScores.length);
+                barData[3].value = Math.round(relevantScores.reduce((s, x) => s + x.d, 0) / relevantScores.length);
+            }
+            createBarChart('adminBarChart', barData);
+        }
+        // ==================== PARTICIPANT: EVOLUTION ====================
+        function initEvolutionSelect() {
+            const participants = getData(STORAGE_KEYS.PARTICIPANTS).filter(p => p.active);
+            const select = document.getElementById('evolutionParticipantSelect');
+            select.innerHTML = '<option value="">Selecione seu nome...</option>' + participants.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        }
+
+        function loadParticipantEvolution() {
+            const select = document.getElementById('evolutionParticipantSelect');
+            const id = select.value;
+            if (!id) { document.getElementById('evolutionDashboard').style.display = 'none'; return; }
+            document.getElementById('evolutionDashboard').style.display = 'block';
+            const scores = getData(STORAGE_KEYS.SCORES).filter(s => s.participantId === parseInt(id)).sort((a, b) => new Date(a.date) - new Date(b.date));
+            const totalScores = scores.map(s => parseFloat((parseFloat(s.a) + parseFloat(s.b) + parseFloat(s.c) + parseFloat(s.d)).toFixed(1)));
+            const labels = scores.map(s => new Date(s.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+            createLineChart('participantLineChart', [{ name: 'Score Total', values: totalScores, labels: labels }], ['#00a651']);
+            const latest = scores[scores.length - 1];
+            if (latest) { createBarChart('participantBarChart', [{ label: 'Trocas/Avarias', value: latest.a, color: '#00a651' }, { label: 'Vendas', value: Math.round(latest.b), color: '#ffc72c' }, { label: 'Precedentes', value: latest.c, color: '#ff9800' }, { label: 'Consultas', value: latest.d, color: '#008c44' }]); }
+            const historyList = document.getElementById('participantHistoryList');
+            historyList.innerHTML = scores.slice().reverse().map(s => `<div class="activity-item"><div class="activity-icon" style="background: var(--yellow); color: var(--black);"><i class="fas fa-calendar-day"></i></div><div class="activity-content"><p><strong>${s.date}</strong></p><p>A: ${s.a} | B: ${s.b}% | <strong style="color:var(--orange)">C: ${s.c}</strong> | D: ${s.d}</p>${s.notes ? `<p style="color: #888; font-size: 0.85rem;">${s.notes}</p>` : ''}</div></div>`).join('');
+        }
+
+        // ==================== ADMIN: RANKING ====================
         function renderRanking() {
             const ranking = calculateRanking();
             const podium = document.getElementById('podium');
@@ -438,24 +1196,102 @@
                 const p = top3.find((_, i) => i + 1 === pos);
                 if (!p) return '';
                 const isFirst = pos === 1;
-                return '<div class="podium-place">' + (isFirst ? '<div class="podium-crown">\u{1F451}</div>' : '') + '<div class="podium-avatar">' + p.avatar + '</div><div class="podium-name">' + p.name + '</div><div class="podium-score">' + p.scores.total + ' pts</div><div class="podium-base">' + pos + 'º</div></div>';
+                return `<div class="podium-place">${isFirst ? '<div class="podium-crown">👑</div>' : ''}<div class="podium-avatar">${p.avatar}</div><div class="podium-name">${p.name}</div><div class="podium-score">${p.scores.total} pts</div><div class="podium-base">${pos}º</div></div>`;
             }).join('');
             tbody.innerHTML = ranking.map((p, index) => {
                 const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'rank-other';
-                return '<tr><td><div class="rank-number ' + rankClass + '">' + (index+1) + '</div></td><td><div class="participant-name"><div class="participant-avatar">' + p.avatar + '</div><div><div style="font-weight:800">' + p.name + '</div><div style="font-size:0.8rem;color:#888">' + p.area + '</div></div></div></td><td><div style="font-weight:700">' + p.scores.a + '</div><div class="score-bar"><div class="score-fill a" style="width:' + p.scores.a + '%"></div></div></td><td><div style="font-weight:700">' + p.scores.b + '</div><div class="score-bar"><div class="score-fill b" style="width:' + p.scores.b + '%"></div></div></td><td><div style="font-weight:700">' + p.scores.c + '</div><div class="score-bar"><div class="score-fill c" style="width:' + p.scores.c + '%"></div></div></td><td><div style="font-weight:700">' + p.scores.d + '</div><div class="score-bar"><div class="score-fill d" style="width:' + p.scores.d + '%"></div></div></td><td><strong style="color:var(--green);font-size:1.1rem">' + p.scores.total + '</strong></td><td><button class="btn btn-primary" style="padding:8px 15px;font-size:0.8rem" onclick="showParticipantDetail(' + p.id + ')"><i class="fas fa-eye"></i> Ver</button></td></tr>';
+                return `<tr><td><div class="rank-number ${rankClass}">${index + 1}</div></td><td><div class="participant-name"><div class="participant-avatar">${p.avatar}</div><div><div style="font-weight: 800;">${p.name}</div><div style="font-size: 0.8rem; color: #888;">${p.area}</div></div></div></td><td><div style="font-weight: 700;">${p.scores.a}</div><div class="score-bar"><div class="score-fill a" style="width: ${p.scores.a}%"></div></div></td><td><div style="font-weight: 700;">${p.scores.b}</div><div class="score-bar"><div class="score-fill b" style="width: ${p.scores.b}%"></div></div></td><td><div style="font-weight: 700; color: var(--orange);">${p.scores.c}</div><div class="score-bar"><div class="score-fill c" style="width: ${p.scores.c}%"></div></div></td><td><div style="font-weight: 700;">${p.scores.d}</div><div class="score-bar"><div class="score-fill d" style="width: ${p.scores.d}%"></div></div></td><td><strong style="color: var(--green); font-size: 1.1rem;">${p.scores.total}</strong></td><td><button class="btn btn-primary" style="padding: 8px 15px; font-size: 0.8rem;" onclick="showParticipantDetail(${p.id})"><i class="fas fa-eye"></i></button></td></tr>`;
             }).join('');
         }
 
-        function filterRanking(criteria, evt) {
+        function filterRanking(criteria) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            if (evt) evt.target.classList.add('active');
+            event.target.classList.add('active');
             renderRanking();
         }
 
+        // ==================== PARTICIPANT: RANKING ====================
+        function renderParticipantRanking() {
+            const ranking = calculateRanking();
+            const podium = document.getElementById('podiumParticipant');
+            const tbody = document.getElementById('rankingTableParticipant');
+            const top3 = ranking.slice(0, 3);
+            const positions = [2, 1, 3];
+            podium.innerHTML = positions.map(pos => {
+                const p = top3.find((_, i) => i + 1 === pos);
+                if (!p) return '';
+                const isFirst = pos === 1;
+                return `<div class="podium-place">${isFirst ? '<div class="podium-crown">👑</div>' : ''}<div class="podium-avatar">${p.avatar}</div><div class="podium-name">${p.name}</div><div class="podium-score">${p.scores.total} pts</div><div class="podium-base">${pos}º</div></div>`;
+            }).join('');
+            tbody.innerHTML = ranking.map((p, index) => {
+                const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'rank-other';
+                const isMe = selectedParticipantId && p.id === parseInt(selectedParticipantId);
+                const highlight = isMe ? 'style="background: #fff8e1;"' : '';
+                return `<tr ${highlight}><td><div class="rank-number ${rankClass}">${index + 1}</div></td><td><div class="participant-name"><div class="participant-avatar" style="${isMe ? 'background: linear-gradient(135deg, var(--yellow), var(--yellow-dark)); color: var(--black);' : ''}">${p.avatar}</div><div><div style="font-weight: 800;">${p.name} ${isMe ? '<span style="color: var(--orange); font-size: 0.8rem;">(VOCÊ)</span>' : ''}</div></div></div></td><td><strong style="color: var(--green);">${p.scores.total}</strong></td></tr>`;
+            }).join('');
+        }
+        // ==================== PARTICIPANT: DASHBOARD ====================
+        function initParticipantSelect() {
+            const participants = getData(STORAGE_KEYS.PARTICIPANTS).filter(p => p.active);
+            const select = document.getElementById('participantSelect');
+            select.innerHTML = '<option value="">Selecione seu nome...</option>' + participants.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            const saved = getData(STORAGE_KEYS.CURRENT_USER);
+            if (saved && saved.participantId) { select.value = saved.participantId; selectedParticipantId = saved.participantId; }
+        }
+
+        function loadParticipantDashboard() {
+            const select = document.getElementById('participantSelect');
+            selectedParticipantId = select.value;
+            if (!selectedParticipantId) { document.getElementById('participantDashboard').style.display = 'none'; return; }
+            document.getElementById('participantDashboard').style.display = 'block';
+            const current = getData(STORAGE_KEYS.CURRENT_USER) || {};
+            current.participantId = selectedParticipantId;
+            setData(STORAGE_KEYS.CURRENT_USER, current);
+            const ranking = calculateRanking();
+            const myIndex = ranking.findIndex(p => p.id === parseInt(selectedParticipantId));
+            const me = myIndex >= 0 ? ranking[myIndex] : null;
+            if (!me) return;
+            document.getElementById('positionNumber').innerHTML = `${myIndex + 1}<small>º</small>`;
+            document.getElementById('positionName').textContent = me.name;
+            document.getElementById('positionArea').textContent = me.area;
+            document.getElementById('totalScore').textContent = me.scores.total;
+            document.getElementById('totalParticipants').textContent = ranking.length;
+            const total = parseFloat(me.scores.total);
+            const max = 400;
+            const percent = Math.min(100, (total / max) * 100);
+            const circumference = 2 * Math.PI * 65;
+            const offset = circumference - (percent / 100) * circumference;
+            document.getElementById('progressCircle').style.strokeDashoffset = offset;
+            document.getElementById('progressPercent').textContent = Math.round(percent) + '%';
+            const scores = getData(STORAGE_KEYS.SCORES).filter(s => s.participantId === parseInt(selectedParticipantId)).sort((a, b) => new Date(a.date) - new Date(b.date));
+            if (scores.length >= 2) {
+                const latest = scores[scores.length - 1];
+                const previous = scores[scores.length - 2];
+                const latestTotal = latest.a + latest.b + latest.c + latest.d;
+                const previousTotal = previous.a + previous.b + previous.c + previous.d;
+                const totalDiff = latestTotal - previousTotal;
+                document.getElementById('trendGrid').innerHTML = `<div class="comparison-item"><div class="label">Score Anterior</div><div class="value">${previousTotal.toFixed(1)}</div></div><div class="comparison-item"><div class="label">Score Atual</div><div class="value positive">${latestTotal.toFixed(1)}</div></div><div class="comparison-item"><div class="label">Variação</div><div class="value ${totalDiff >= 0 ? 'positive' : 'negative'}">${totalDiff >= 0 ? '+' : ''}${totalDiff.toFixed(1)}</div><div class="change"><span class="trend-indicator ${totalDiff >= 0 ? 'up' : 'down'}"><i class="fas fa-arrow-${totalDiff >= 0 ? 'up' : 'down'}"></i>${totalDiff >= 0 ? 'Subindo' : 'Caindo'}</span></div></div><div class="comparison-item"><div class="label">Precedentes</div><div class="value" style="color: var(--orange);">${latest.c}</div><div class="change">${latest.c > previous.c ? '+' + (latest.c - previous.c) : latest.c < previous.c ? (latest.c - previous.c) : '→'} vs anterior</div></div>`;
+            } else {
+                document.getElementById('trendGrid').innerHTML = '<p style="color: #888; text-align: center;">Registros insuficientes para análise de tendência.</p>';
+            }
+            const criteriaData = [
+                { key: 'a', name: 'Trocas e Avarias', icon: '🛡️', desc: 'Cuide do produto como se fosse seu. Quanto menos quebra e troca, melhor.', color: 'var(--green)' },
+                { key: 'b', name: 'Vendas Positivo', icon: '📈', desc: 'Venda mais que no mês passado. O número tem que estar no azul!', color: 'var(--yellow)' },
+                { key: 'c', name: 'Precedente Positivo', icon: '⭐', desc: 'Atenda os pedidos da diretoria. Quanto mais precedentes positivos, mais pontos.', color: 'var(--orange)' },
+                { key: 'd', name: 'Consulta de Preço', icon: '🔍', desc: 'Prospecção e iniciativa. Quanto mais consultas de preço, melhor.', color: 'var(--green-dark)' }
+            ];
+            document.getElementById('participantCriteriaList').innerHTML = criteriaData.map(c => {
+                const score = me.scores[c.key];
+                const isLow = parseFloat(score) < 50;
+                return `<div class="criteria-item"><div class="criteria-badge ${c.key}">${c.icon}</div><div class="criteria-content"><div class="criteria-name">${c.name}</div><div class="criteria-analogy">${c.desc}</div><div class="criteria-my-score"><div class="score-bar-mini"><div class="score-fill-mini ${c.key}" style="width: ${Math.min(100, score)}%"></div></div><div class="score-value-mini" style="color: ${isLow ? 'var(--red)' : c.color}">${score} pts</div></div></div></div>`;
+            }).join('');
+            document.getElementById('precedentCount').textContent = me.scores.c;
+        }
+        // ==================== ADMIN: PARTICIPANTS ====================
         function renderParticipants() {
             const participants = getData(STORAGE_KEYS.PARTICIPANTS);
             const container = document.getElementById('participantsList');
-            container.innerHTML = '<div style="margin-bottom:20px"><button class="btn btn-yellow" onclick="showAddParticipant()"><i class="fas fa-user-plus"></i> Adicionar Participante</button></div><div class="stats-grid" style="margin-bottom:20px"><div class="stat-box"><div class="value">' + participants.length + '</div><div class="label">Total Participantes</div></div><div class="stat-box"><div class="value">' + participants.filter(p=>p.active).length + '</div><div class="label">Ativos</div></div></div><div class="doc-list">' + participants.map(p => '<div class="doc-item"><div class="participant-avatar" style="width:50px;height:50px;font-size:1.2rem">' + p.avatar + '</div><div class="doc-info"><h4>' + p.name + '</h4><p>' + p.area + (p.active ? ' • Ativo' : ' • Inativo') + '</p></div><div class="doc-actions"><button onclick="editParticipant(' + p.id + ')" title="Editar"><i class="fas fa-edit"></i></button><button onclick="toggleParticipant(' + p.id + ')" title="' + (p.active?'Desativar':'Ativar') + '"><i class="fas fa-' + (p.active?'toggle-on':'toggle-off') + '"></i></button><button onclick="deleteParticipant(' + p.id + ')" title="Excluir" style="color:var(--red)"><i class="fas fa-trash"></i></button></div></div>').join('') + '</div>';
+            container.innerHTML = `<div style="margin-bottom: 20px;"><button class="btn btn-yellow" onclick="showAddParticipant()"><i class="fas fa-user-plus"></i> Adicionar Participante</button></div><div class="stats-grid" style="margin-bottom: 20px;"><div class="stat-box"><div class="value">${participants.length}</div><div class="label">Total</div></div><div class="stat-box"><div class="value">${participants.filter(p => p.active).length}</div><div class="label">Ativos</div></div></div><div class="doc-list">${participants.map(p => `<div class="doc-item"><div class="participant-avatar" style="width: 50px; height: 50px; font-size: 1.2rem;">${p.avatar}</div><div class="doc-info"><h4>${p.name}</h4><p>${p.area} ${p.active ? '• Ativo' : '• Inativo'}</p></div><div class="doc-actions"><button onclick="editParticipant(${p.id})" title="Editar"><i class="fas fa-edit"></i></button><button onclick="toggleParticipant(${p.id})" title="${p.active ? 'Desativar' : 'Ativar'}"><i class="fas fa-${p.active ? 'toggle-on' : 'toggle-off'}"></i></button><button onclick="deleteParticipant(${p.id})" title="Excluir" style="color: var(--red);"><i class="fas fa-trash"></i></button></div></div>`).join('')}</div>`;
         }
 
         function showAddParticipant() {
@@ -467,6 +1303,7 @@
             participants.push({ id: Date.now(), name, area: area || 'Vendas', avatar: initials, active: true });
             setData(STORAGE_KEYS.PARTICIPANTS, participants);
             renderParticipants();
+            showToast('Sucesso!', `${name} foi adicionado aos participantes.`, 'success');
         }
 
         function editParticipant(id) {
@@ -490,15 +1327,17 @@
         }
 
         function deleteParticipant(id) {
-            if (!confirm('Tem certeza que deseja excluir este participante?')) return;
-            setData(STORAGE_KEYS.PARTICIPANTS, getData(STORAGE_KEYS.PARTICIPANTS).filter(p => p.id !== id));
+            if (!confirm('Tem certeza que deseja excluir?')) return;
+            const participants = getData(STORAGE_KEYS.PARTICIPANTS).filter(p => p.id !== id);
+            setData(STORAGE_KEYS.PARTICIPANTS, participants);
             renderParticipants();
         }
 
+        // ==================== ADMIN: SCORE FORM ====================
         function initScoreForm() {
             const participants = getData(STORAGE_KEYS.PARTICIPANTS).filter(p => p.active);
             const select = document.getElementById('scoreParticipant');
-            select.innerHTML = '<option value="">Selecione...</option>' + participants.map(p => '<option value="' + p.id + '">' + p.name + '</option>').join('');
+            select.innerHTML = '<option value="">Selecione...</option>' + participants.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
             document.getElementById('scoreDate').valueAsDate = new Date();
             renderScoreHistory();
         }
@@ -509,7 +1348,7 @@
             Array.from(input.files).forEach(file => {
                 const tag = document.createElement('div');
                 tag.className = 'file-tag';
-                tag.innerHTML = '<i class="fas fa-file"></i> ' + file.name + ' <button onclick="this.parentElement.remove()">x</button>';
+                tag.innerHTML = `<i class="fas fa-file"></i> ${file.name} <button onclick="this.parentElement.remove()">×</button>`;
                 list.appendChild(tag);
             });
         }
@@ -529,7 +1368,8 @@
             e.target.reset();
             document.getElementById('scoreDate').valueAsDate = new Date();
             document.getElementById('scoreFileList').innerHTML = '';
-            alert('Pontuação registrada com sucesso!');
+            showToast('Pontuação registrada!', 'O ranking será atualizado automaticamente.', 'success');
+            checkRankingChanges();
             renderScoreHistory();
         }
 
@@ -537,37 +1377,50 @@
             const scores = getData(STORAGE_KEYS.SCORES).sort((a, b) => b.id - a.id).slice(0, 10);
             const participants = getData(STORAGE_KEYS.PARTICIPANTS);
             const container = document.getElementById('scoreHistory');
-            if (scores.length === 0) { container.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-list"></i><h3>Nenhum registro ainda</h3></div>'; return; }
-            container.innerHTML = scores.map(s => { const p = participants.find(x => x.id === s.participantId); return '<div class="activity-item"><div class="activity-icon"><i class="fas fa-chart-bar"></i></div><div class="activity-content"><p><strong>' + (p ? p.name : 'Desconhecido') + '</strong> - A:' + s.a + ' B:' + s.b + ' C:' + s.c + ' D:' + s.d + '</p><p style="color:#666;font-size:0.85rem">' + (s.notes || 'Sem observações') + '</p><div class="time"><i class="fas fa-calendar"></i> ' + s.date + '</div></div></div>'; }).join('');
+            if (scores.length === 0) { container.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-list"></i><h3>Nenhum registro</h3></div>'; return; }
+            container.innerHTML = scores.map(s => {
+                const p = participants.find(x => x.id === s.participantId);
+                return `<div class="activity-item"><div class="activity-icon"><i class="fas fa-chart-bar"></i></div><div class="activity-content"><p><strong>${p ? p.name : '?'}</strong> — A:${s.a} B:${s.b} <strong style="color:var(--orange)">C:${s.c}</strong> D:${s.d}</p><p style="color: #666; font-size: 0.85rem;">${s.notes || ''}</p><div class="time"><i class="fas fa-calendar"></i> ${s.date}</div></div></div>`;
+            }).join('');
         }
-
+        // ==================== DOCUMENTS & PHOTOS ====================
         function handleDocUpload(input) {
             const files = Array.from(input.files);
             const docs = getData(STORAGE_KEYS.DOCUMENTS);
             files.forEach(file => {
                 const reader = new FileReader();
-                reader.onload = (e) => { docs.push({ id: Date.now() + Math.random(), name: file.name, type: file.type, size: file.size, date: new Date().toISOString(), data: e.target.result }); setData(STORAGE_KEYS.DOCUMENTS, docs); renderDocuments(); };
+                reader.onload = (e) => {
+                    docs.push({ id: Date.now() + Math.random(), name: file.name, type: file.type, size: file.size, date: new Date().toISOString(), data: e.target.result });
+                    setData(STORAGE_KEYS.DOCUMENTS, docs);
+                    renderDocuments();
+                };
                 reader.readAsDataURL(file);
             });
+            showToast('Documentos enviados!', `${files.length} arquivo(s) adicionado(s).`, 'success');
         }
 
         function renderDocuments() {
             const docs = getData(STORAGE_KEYS.DOCUMENTS).sort((a, b) => b.id - a.id);
             const container = document.getElementById('documentsList');
-            if (docs.length === 0) { container.innerHTML = '<div class="empty-state"><i class="fas fa-folder-open"></i><h3>Nenhum documento ainda</h3><p>Envie PDFs, planilhas e comprovantes</p></div>'; return; }
-            container.innerHTML = '<div class="doc-list">' + docs.map(d => { const icon = d.type.includes('pdf') ? 'fa-file-pdf' : d.type.includes('excel') || d.type.includes('sheet') ? 'fa-file-excel' : d.type.includes('word') ? 'fa-file-word' : 'fa-file'; const size = (d.size/1024).toFixed(1) + ' KB'; return '<div class="doc-item"><div class="doc-icon"><i class="fas ' + icon + '"></i></div><div class="doc-info"><h4>' + d.name + '</h4><p>' + size + ' • ' + new Date(d.date).toLocaleDateString('pt-BR') + '</p></div><div class="doc-actions"><button onclick="downloadDoc(' + d.id + ')" title="Download"><i class="fas fa-download"></i></button><button onclick="deleteDoc(' + d.id + ')" title="Excluir"><i class="fas fa-trash"></i></button></div></div>'; }).join('') + '</div>';
+            if (docs.length === 0) { container.innerHTML = '<div class="empty-state"><i class="fas fa-folder-open"></i><h3>Nenhum documento</h3></div>'; return; }
+            container.innerHTML = '<div class="doc-list">' + docs.map(d => {
+                const icon = d.type.includes('pdf') ? 'fa-file-pdf' : d.type.includes('excel') || d.type.includes('sheet') ? 'fa-file-excel' : d.type.includes('word') ? 'fa-file-word' : 'fa-file';
+                return `<div class="doc-item"><div class="doc-icon"><i class="fas ${icon}"></i></div><div class="doc-info"><h4>${d.name}</h4><p>${(d.size/1024).toFixed(1)} KB</p></div><div class="doc-actions"><button onclick="downloadDoc(${d.id})"><i class="fas fa-download"></i></button><button onclick="deleteDoc(${d.id})"><i class="fas fa-trash"></i></button></div></div>`;
+            }).join('') + '</div>';
         }
 
         function downloadDoc(id) {
-            const doc = getData(STORAGE_KEYS.DOCUMENTS).find(d => d.id === id);
+            const docs = getData(STORAGE_KEYS.DOCUMENTS);
+            const doc = docs.find(d => d.id === id);
             if (!doc) return;
             const a = document.createElement('a');
             a.href = doc.data; a.download = doc.name; a.click();
         }
 
         function deleteDoc(id) {
-            if (!confirm('Excluir este documento?')) return;
-            setData(STORAGE_KEYS.DOCUMENTS, getData(STORAGE_KEYS.DOCUMENTS).filter(d => d.id !== id));
+            if (!confirm('Excluir?')) return;
+            const docs = getData(STORAGE_KEYS.DOCUMENTS).filter(d => d.id !== id);
+            setData(STORAGE_KEYS.DOCUMENTS, docs);
             renderDocuments();
         }
 
@@ -577,24 +1430,31 @@
             files.forEach(file => {
                 if (!file.type.startsWith('image/')) return;
                 const reader = new FileReader();
-                reader.onload = (e) => { photos.push({ id: Date.now() + Math.random(), name: file.name, data: e.target.result, date: new Date().toISOString() }); setData(STORAGE_KEYS.PHOTOS, photos); renderPhotos(); };
+                reader.onload = (e) => {
+                    photos.push({ id: Date.now() + Math.random(), name: file.name, data: e.target.result, date: new Date().toISOString() });
+                    setData(STORAGE_KEYS.PHOTOS, photos);
+                    renderPhotos();
+                };
                 reader.readAsDataURL(file);
             });
+            showToast('Fotos adicionadas!', `${files.length} foto(s) enviada(s).`, 'success');
         }
 
         function renderPhotos() {
             const photos = getData(STORAGE_KEYS.PHOTOS).sort((a, b) => b.id - a.id);
             const gallery = document.getElementById('photoGallery');
-            if (photos.length === 0) { gallery.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-images"></i><h3>Nenhuma foto ainda</h3></div>'; return; }
-            gallery.innerHTML = photos.map(p => '<div class="gallery-item" onclick="viewPhoto(\'' + p.data + '\')"><img src="' + p.data + '" alt="' + p.name + '"><div class="overlay"><i class="fas fa-calendar"></i> ' + new Date(p.date).toLocaleDateString('pt-BR') + '</div></div>').join('');
+            if (photos.length === 0) { gallery.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;"><i class="fas fa-images"></i><h3>Nenhuma foto</h3></div>'; return; }
+            gallery.innerHTML = photos.map(p => `<div class="gallery-item" onclick="viewPhoto('${p.data}')"><img src="${p.data}" alt="${p.name}"></div>`).join('');
         }
 
         function viewPhoto(src) {
-            document.getElementById('modalBody').innerHTML = '<img src="' + src + '" style="width:100%;border-radius:12px"><div style="text-align:center;margin-top:15px"><button class="btn btn-primary" onclick="closeModal()">Fechar</button></div>';
-            document.querySelector('#participantModal .modal-header h2').textContent = 'Visualizar Foto';
-            document.getElementById('participantModal').classList.add('active');
+            const modal = document.getElementById('participantModal');
+            document.getElementById('modalTitle').textContent = 'Foto';
+            document.getElementById('modalBody').innerHTML = `<img src="${src}" style="width: 100%; border-radius: 12px;"><div style="text-align:center; margin-top:15px;"><button class="btn btn-primary" onclick="closeModal()">Fechar</button></div>`;
+            modal.classList.add('active');
         }
 
+        // ==================== MODAL ====================
         function showParticipantDetail(id) {
             const participants = getData(STORAGE_KEYS.PARTICIPANTS);
             const scores = getData(STORAGE_KEYS.SCORES);
@@ -602,18 +1462,29 @@
             if (!p) return;
             const pScores = scores.filter(s => s.participantId === id).sort((a, b) => b.id - a.id);
             const latest = pScores[0] || { a: 0, b: 0, c: 0, d: 0 };
-            document.getElementById('modalBody').innerHTML = '<div class="participant-header"><div class="avatar">' + p.avatar + '</div><div class="info"><h2>' + p.name + '</h2><p><i class="fas fa-building"></i> ' + p.area + ' • <i class="fas fa-chart-line"></i> ' + pScores.length + ' registros</p></div></div><div class="stats-grid"><div class="stat-box"><div class="value">' + latest.a + '</div><div class="label">Trocas/Avarias</div></div><div class="stat-box"><div class="value">' + latest.b + '%</div><div class="label">Vendas Positivo</div></div><div class="stat-box"><div class="value">' + latest.c + '</div><div class="label">Precedentes</div></div><div class="stat-box"><div class="value">' + latest.d + '</div><div class="label">Consultas</div></div></div><h3 style="margin-bottom:15px;font-weight:800">Histórico de Pontuações</h3><div class="doc-list">' + (pScores.length === 0 ? '<p style="color:#888">Nenhum registro encontrado.</p>' : pScores.map(s => '<div class="doc-item"><div class="doc-icon" style="background:var(--yellow);color:var(--black)"><i class="fas fa-calendar-day"></i></div><div class="doc-info"><h4>' + s.date + '</h4><p>A:' + s.a + ' | B:' + s.b + ' | C:' + s.c + ' | D:' + s.d + (s.notes ? ' • ' + s.notes : '') + '</p></div></div>').join('')) + '</div>';
-            document.querySelector('#participantModal .modal-header h2').textContent = 'Perfil do Participante';
-            document.getElementById('participantModal').classList.add('active');
+            const modal = document.getElementById('participantModal');
+            document.getElementById('modalTitle').textContent = p.name;
+            document.getElementById('modalBody').innerHTML = `<div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;"><div class="participant-avatar" style="width: 60px; height: 60px; font-size: 1.5rem;">${p.avatar}</div><div><h3 style="font-weight:800;">${p.name}</h3><p style="color:#888;">${p.area}</p></div></div><div class="stats-grid"><div class="stat-box"><div class="value">${latest.a}</div><div class="label">Trocas</div></div><div class="stat-box"><div class="value">${latest.b}%</div><div class="label">Vendas</div></div><div class="stat-box"><div class="value" style="color:var(--orange)">${latest.c}</div><div class="label">Precedentes</div></div><div class="stat-box"><div class="value">${latest.d}</div><div class="label">Consultas</div></div></div><h4 style="margin-bottom: 10px; font-weight: 800;">Histórico</h4><div class="doc-list">${pScores.length === 0 ? '<p style="color:#888;">Nenhum registro.</p>' : pScores.map(s => `<div class="doc-item"><div class="doc-icon" style="background: var(--yellow); color: var(--black);"><i class="fas fa-calendar-day"></i></div><div class="doc-info"><h4>${s.date}</h4><p>A:${s.a} B:${s.b} <strong style="color:var(--orange)">C:${s.c}</strong> D:${s.d} ${s.notes ? '• ' + s.notes : ''}</p></div></div>`).join('')}</div>`;
+            modal.classList.add('active');
         }
 
         function closeModal() { document.getElementById('participantModal').classList.remove('active'); }
 
+        // ==================== INIT ====================
         document.addEventListener('DOMContentLoaded', () => {
             initData();
-            renderRanking();
-            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('pt-BR');
+            const saved = getData(STORAGE_KEYS.CURRENT_USER);
+            if (saved && saved.profile) {
+                currentProfile = saved.profile;
+                if (saved.participantId) selectedParticipantId = saved.participantId;
+                doLogin();
+            }
             document.getElementById('participantModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModal(); });
+            document.addEventListener('click', (e) => {
+                const bell = document.querySelector('.notification-bell');
+                const dropdown = document.getElementById('notifDropdown');
+                if (!bell.contains(e.target)) dropdown.classList.remove('active');
+            });
         });
     </script>
 </body>
