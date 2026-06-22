@@ -28,12 +28,15 @@ Página única `index.html` (HTML + CSS + JS num único `<script type="module">`
 - Documentos e fotos ainda ficam em **localStorage** (`bb_docs`, `bb_photos`) — não migrados.
 - `refreshAll()` recarrega participantes+pontuações do Firestore a cada troca de aba.
 
-### Critérios (NÃO mudar a lógica de cálculo — `calcRanking()`)
-- **A)** Trocas/Avarias (menor = melhor) → `sa = 100 - avgA*10`
-- **B)** Vendas Positivo (%) → `sb = avgB*2`
-- **C)** Precedente Positivo → `sc = avgC*5`
-- **D)** Consulta de Preço → `sd = avgD*1.5`
-- Cada um limitado a 100; total = soma dos quatro. Ranking ordenado por total.
+### Critérios (`calcRanking()` + `enrichScores()`)
+Captura por período (kg + clientes): **Volume vendido (kg)**, **Volume de avarias (kg)** (perda+bonif+devol) e **Qtd. de clientes**. Pesos editáveis no topo (`PESO_A/B/C/D`, default 1).
+- **A) Trocas e Avarias** (menor = melhor): `avaria_% = volume_avarias / volume_vendido`; `nota = 100 - avaria_%*100*AVARIA_PTS_POR_PCT` (default 5 → 4% = 80, 20% = 0). Usa o período mais recente do vendedor.
+- **B) Vendas Positivo** (crescimento, maior = melhor): `cresc_% = (vol_atual - vol_anterior)/vol_anterior` vs o **próprio período anterior**; `nota = CRESC_NOTA_BASE + cresc_%*CRESC_PTS_POR_PCT` (50 base, 2,5 pt/% → +20% = 100, manter = 50, -20% = 0). Sem período anterior → **"—" (sem nota, não pontua)**.
+- **C) Precedente Positivo** → `sc = min(100, avgC*5)*PESO_C` (lógica original, média 30 dias).
+- **D) Consulta de Preço** → `sd = min(100, avgD*1.5)*PESO_D` (lógica original, média 30 dias).
+- **Métrica de apoio exibida:** `volume_por_cliente = volume_vendido / qtd_clientes`.
+- Total = soma das quatro notas (com peso). Ranking ordenado por total.
+- **SEM R$/preço** — tudo proporcional em kg, pra ser justo entre portes diferentes.
 
 ### Telas
 - **Vendedor:** Meu Ranking · O Que Cumprir · Minha Evolução · Ranking Geral.

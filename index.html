@@ -1540,15 +1540,29 @@
                                 <input type="date" id="scoreDate" required style="width: 100%; padding: 14px; border: 2px solid #e8e8e8; border-radius: 12px; font-family: 'Montserrat';">
                             </div>
                         </div>
+                        <div class="input-group a" style="margin-bottom:14px;">
+                            <label><i class="fas fa-weight-hanging"></i> Volume do período (kg) — base dos critérios A e B</label>
+                            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:4px;">
+                                <div>
+                                    <label style="font-size:0.72rem; color:var(--gray-dark); font-weight:600; display:block; margin-bottom:4px;">Volume vendido (kg)</label>
+                                    <input type="number" id="scoreVol" min="0" step="0.01" placeholder="0" oninput="calcVolumePreview()" required>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.72rem; color:var(--gray-dark); font-weight:600; display:block; margin-bottom:4px;">Volume de avarias (kg) — perda + bonif. + devol.</label>
+                                    <input type="number" id="scoreAvarias" min="0" step="0.01" placeholder="0" oninput="calcVolumePreview()" required>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.72rem; color:var(--gray-dark); font-weight:600; display:block; margin-bottom:4px;">Quantidade de clientes no período</label>
+                                    <input type="number" id="scoreClientes" min="0" step="1" placeholder="0" oninput="calcVolumePreview()" required>
+                                </div>
+                            </div>
+                            <div style="margin-top:12px; display:flex; gap:18px; flex-wrap:wrap; font-size:0.85rem; font-weight:700;">
+                                <span style="color:var(--orange)">Avaria: <span id="previewPctAvaria">0,0%</span></span>
+                                <span style="color:var(--green-dark)">Volume por cliente: <span id="previewVolCliente">0 kg</span></span>
+                            </div>
+                            <p style="margin-top:8px; font-size:0.76rem; color:var(--gray-dark)">A nota de <strong>Vendas Positivo (B)</strong> é calculada automaticamente comparando este volume com o do período anterior do vendedor.</p>
+                        </div>
                         <div class="input-grid">
-                            <div class="input-group a">
-                                <label><i class="fas fa-shield-alt"></i> Trocas/Avarias</label>
-                                <input type="number" id="scoreA" min="0" placeholder="0" required>
-                            </div>
-                            <div class="input-group b">
-                                <label><i class="fas fa-chart-line"></i> Vendas Positivo (%)</label>
-                                <input type="number" id="scoreB" step="0.1" placeholder="0.0" required>
-                            </div>
                             <div class="input-group c">
                                 <label><i class="fas fa-star"></i> Precedentes</label>
                                 <input type="number" id="scoreC" min="0" placeholder="0" required>
@@ -1702,6 +1716,23 @@
         // ═══════════════════════════════════════════
         const ADMIN_KEY = "ABANANAS2026";
         // ═══════════════════════════════════════════
+        // PESOS DOS CRITÉRIOS (editáveis) — multiplicam a nota 0–100 de cada critério.
+        // 1 = todos valem o mesmo (máx 100 pts cada, total 400).
+        // ═══════════════════════════════════════════
+        const PESO_A = 1; // Trocas e Avarias (menor avaria = melhor)
+        const PESO_B = 1; // Vendas Positivo (crescimento de volume)
+        const PESO_C = 1; // Precedentes
+        const PESO_D = 1; // Consulta de Preço
+        // ── Critério A — Trocas e Avarias (tudo em kg, sem R$) ──────────
+        // avaria_% = volume_avarias_kg / volume_vendido_kg  (ex.: 2.000/50.000 = 4%)
+        // Menor % = nota maior → justo entre portes. Pontos descontados por cada 1% de avaria:
+        const AVARIA_PTS_POR_PCT = 5; // 4% → -20 pts (nota 80); 20% → nota 0
+        // ── Critério B — Vendas Positivo (crescimento de volume vs período anterior) ──
+        // cresc_% = (volume_atual - volume_anterior) / volume_anterior, comparando o vendedor
+        // com o PRÓPRIO período anterior. Sem período anterior → "—" (sem nota).
+        const CRESC_NOTA_BASE = 50;    // manter o mesmo volume = 50 pts
+        const CRESC_PTS_POR_PCT = 2.5; // +20% → 100 pts; -20% → 0 pts
+        // ═══════════════════════════════════════════
         // STATE
         // ═══════════════════════════════════════════
         let perfilSelecionado = null;
@@ -1749,12 +1780,46 @@
                     id: d.id,
                     participantId: x.participantId,
                     date: x.date,
-                    a: Number(x.a) || 0,
-                    b: Number(x.b) || 0,
+                    // Dados crus do período (kg + clientes) — base dos critérios A e B
+                    volumeVendido: Number(x.volumeVendido) || 0,
+                    volumeAvarias: Number(x.volumeAvarias) || 0,
+                    qtdClientes: Number(x.qtdClientes) || 0,
                     c: Number(x.c) || 0,
                     d: Number(x.d) || 0,
                     notes: x.notes || ''
                 };
+            });
+            enrichScores();
+        }
+        // Calcula, por registro, as notas A e B e a métrica de apoio (volume/cliente).
+        // B precisa do período anterior do MESMO vendedor → ordena por data antes.
+        function enrichScores() {
+            const porVendedor = {};
+            DB.scores.forEach(s => { (porVendedor[s.participantId] ||= []).push(s); });
+            Object.values(porVendedor).forEach(lista => {
+                lista.sort((a, b) => new Date(a.date) - new Date(b.date));
+                lista.forEach((s, i) => {
+                    // A — avaria percentual (menor = melhor)
+                    const avariaPct = s.volumeVendido > 0 ? s.volumeAvarias / s.volumeVendido : 0;
+                    s.avariaPct = avariaPct;
+                    s.a = s.volumeVendido > 0
+                        ? parseFloat(Math.min(100, Math.max(0, 100 - avariaPct * 100 * AVARIA_PTS_POR_PCT)).toFixed(1))
+                        : 0;
+                    // B — crescimento vs período anterior do próprio vendedor
+                    const prev = i > 0 ? lista[i - 1] : null;
+                    if (prev && prev.volumeVendido > 0) {
+                        const crescPct = (s.volumeVendido - prev.volumeVendido) / prev.volumeVendido * 100;
+                        s.crescPct = crescPct;
+                        s.b = parseFloat(Math.min(100, Math.max(0, CRESC_NOTA_BASE + crescPct * CRESC_PTS_POR_PCT)).toFixed(1));
+                        s.bNA = false;
+                    } else {
+                        s.crescPct = null;
+                        s.b = 0;
+                        s.bNA = true;
+                    }
+                    // Métrica de apoio — produtividade por cliente
+                    s.volPorCliente = s.qtdClientes > 0 ? s.volumeVendido / s.qtdClientes : 0;
+                });
             });
         }
         async function refreshAll() {
@@ -2000,22 +2065,38 @@
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             const out = participants.filter(p => p.active).map(p => {
-                const pScores = scores.filter(s => s.participantId === p.id && new Date(s.date) >= thirtyDaysAgo);
-                if (pScores.length === 0) return { ...p, scores: { a: 0, b: 0, c: 0, d: 0, total: 0 } };
-                const avgA = pScores.reduce((s, x) => s + x.a, 0) / pScores.length;
-                const avgB = pScores.reduce((s, x) => s + x.b, 0) / pScores.length;
-                const avgC = pScores.reduce((s, x) => s + x.c, 0) / pScores.length;
-                const avgD = pScores.reduce((s, x) => s + x.d, 0) / pScores.length;
-                const sa = Math.max(0, 100 - avgA * 10);
-                const sb = Math.min(100, avgB * 2);
-                const sc = Math.min(100, avgC * 5);
-                const sd = Math.min(100, avgD * 1.5);
+                // Histórico completo do vendedor, em ordem cronológica (A e B são por período).
+                const hist = scores.filter(s => s.participantId === p.id)
+                    .sort((x, y) => new Date(x.date) - new Date(y.date));
+                if (hist.length === 0) return { ...p, scores: { a: '0.0', b: '—', bNA: true, c: '0.0', d: '0.0', total: '0.0' } };
+                const latest = hist[hist.length - 1];
+
+                // Critério A — avaria % do período mais recente (notas já calculadas em enrichScores).
+                const sa = (latest.volumeVendido > 0 ? latest.a : 0) * PESO_A;
+
+                // Critério B — crescimento vs período anterior do próprio vendedor.
+                // Sem período anterior (bNA) → não pontua e exibe "—".
+                const sb = latest.bNA ? 0 : latest.b * PESO_B;
+
+                // Critérios C e D — média dos últimos 30 dias (lógica original preservada, só com peso).
+                const pScores = hist.filter(s => new Date(s.date) >= thirtyDaysAgo);
+                const avgC = pScores.length ? pScores.reduce((s, x) => s + x.c, 0) / pScores.length : 0;
+                const avgD = pScores.length ? pScores.reduce((s, x) => s + x.d, 0) / pScores.length : 0;
+                const sc = Math.min(100, avgC * 5) * PESO_C;
+                const sd = Math.min(100, avgD * 1.5) * PESO_D;
+
+                const total = sa + sb + sc + sd;
                 return {
                     ...p,
                     scores: {
-                        a: sa.toFixed(1), b: sb.toFixed(1),
+                        a: sa.toFixed(1),
+                        b: latest.bNA ? '—' : sb.toFixed(1),
+                        bNA: latest.bNA,
                         c: sc.toFixed(1), d: sd.toFixed(1),
-                        total: (sa + sb + sc + sd).toFixed(1)
+                        crescPct: latest.crescPct,
+                        avariaPct: latest.avariaPct,
+                        volPorCliente: latest.volPorCliente,
+                        total: total.toFixed(1)
                     }
                 };
             });
@@ -2103,17 +2184,19 @@
                 { key: 'd', name: 'Consulta de Preço', icon: '🔍', desc: 'Prospecção e iniciativa. Quanto mais consultas de preço, melhor.', color: '#008c44' }
             ];
             document.getElementById('criteriaList').innerHTML = criteria.map(c => {
-                const score = me.scores[c.key];
-                const low = parseFloat(score) < 50;
+                const na = c.key === 'b' && me.scores.bNA;
+                const score = na ? 0 : parseFloat(me.scores[c.key]) || 0;
+                const low = !na && score < 50;
+                const desc = na ? 'Ainda sem período anterior para comparar o crescimento de volume.' : c.desc;
                 return `
                     <div class="criteria-row">
                         <div class="criteria-icon ${c.key}">${c.icon}</div>
                         <div class="criteria-body">
                             <div class="criteria-name">${c.name}</div>
-                            <div class="criteria-desc">${c.desc}</div>
+                            <div class="criteria-desc">${desc}</div>
                             <div class="criteria-bar-wrap">
                                 <div class="criteria-bar"><div class="criteria-bar-fill ${c.key}" style="width:${Math.min(100, score)}%"></div></div>
-                                <div class="criteria-score" style="color:${low ? 'var(--red)' : c.color}">${score} pts</div>
+                                <div class="criteria-score" style="color:${low ? 'var(--red)' : c.color}">${na ? '—' : score + ' pts'}</div>
                             </div>
                         </div>
                     </div>
@@ -2144,7 +2227,7 @@
                 <div class="activity">
                     <div class="activity-ico" style="background:var(--yellow);color:var(--black)"><i class="fas fa-calendar"></i></div>
                     <div class="activity-body">
-                        <p><strong>${s.date}</strong> — A:${s.a} B:${s.b}% <strong style="color:var(--orange)">C:${s.c}</strong> D:${s.d}</p>
+                        <p><strong>${s.date}</strong> — Vendido ${fmtKg(s.volumeVendido)} · Avaria ${(s.avariaPct * 100).toFixed(1).replace('.', ',')}% · A:${s.a} B:${s.bNA ? '—' : s.b} <strong style="color:var(--orange)">C:${s.c}</strong> D:${s.d}</p>
                         ${s.notes ? `<p style="color:#888;font-size:0.82rem">${s.notes}</p>` : ''}
                     </div>
                 </div>
@@ -2195,9 +2278,14 @@
         function loadAdmRanking(filter = admRankingFilter) {
             admRankingFilter = filter;
             // Ordena pelo critério escolhido (ou pelo total quando "Todos")
-            const ranking = calcRanking().slice().sort((a, b) =>
-                parseFloat(b.scores[filter] ?? b.scores.total) - parseFloat(a.scores[filter] ?? a.scores.total)
-            );
+            // Valor de ordenação: total quando filtro = "all"; senão a nota do critério.
+            // "—" (B sem período anterior) vira -1 para cair pro fim da lista.
+            const sortVal = p => {
+                const raw = filter === 'all' ? p.scores.total : p.scores[filter];
+                const n = parseFloat(raw);
+                return isNaN(n) ? -1 : n;
+            };
+            const ranking = calcRanking().slice().sort((a, b) => sortVal(b) - sortVal(a));
             const top3 = ranking.slice(0, 3);
             const order = [1, 0, 2];
             const pts = p => filter === 'all' ? p.scores.total : p.scores[filter];
@@ -2227,7 +2315,7 @@
                             </div>
                         </td>
                         <td style="${hl('a')}"><div style="font-weight:700">${p.scores.a}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill a" style="width:${p.scores.a}%"></div></div></td>
-                        <td style="${hl('b')}"><div style="font-weight:700">${p.scores.b}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill b" style="width:${p.scores.b}%"></div></div></td>
+                        <td style="${hl('b')}"><div style="font-weight:700">${p.scores.b}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill b" style="width:${p.scores.bNA ? 0 : p.scores.b}%"></div></div></td>
                         <td style="${hl('c')}"><div style="font-weight:700;color:var(--orange)">${p.scores.c}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill c" style="width:${p.scores.c}%"></div></div></td>
                         <td style="${hl('d')}"><div style="font-weight:700">${p.scores.d}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill d" style="width:${p.scores.d}%"></div></div></td>
                         <td><strong style="color:var(--green);font-size:1.05rem">${p.scores.total}</strong></td>
@@ -2248,15 +2336,33 @@
             document.getElementById('scoreParticipant').innerHTML = '<option value="">Selecione...</option>' +
                 parts.filter(p => p.active).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
             document.getElementById('scoreDate').valueAsDate = new Date();
+            calcVolumePreview();
             loadAdminHistory();
         }
         window.initRegistrar = initRegistrar;
+        // Formata número em kg (1.234 kg)
+        function fmtKg(v) {
+            return (Number(v) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' kg';
+        }
+        // Cálculo ao vivo dos critérios A e B no formulário de registro
+        function calcVolumePreview() {
+            const vol = parseFloat(document.getElementById('scoreVol').value) || 0;
+            const avarias = parseFloat(document.getElementById('scoreAvarias').value) || 0;
+            const clientes = parseFloat(document.getElementById('scoreClientes').value) || 0;
+            const pct = vol > 0 ? (avarias / vol) * 100 : 0;
+            const volCliente = clientes > 0 ? vol / clientes : 0;
+            document.getElementById('previewPctAvaria').textContent = pct.toFixed(1).replace('.', ',') + '%';
+            document.getElementById('previewVolCliente').textContent = fmtKg(volCliente);
+        }
+        window.calcVolumePreview = calcVolumePreview;
         async function saveScore(e) {
             e.preventDefault();
             const pid = document.getElementById('scoreParticipant').value;
             const date = document.getElementById('scoreDate').value;
-            const a = parseInt(document.getElementById('scoreA').value) || 0;
-            const b = parseFloat(document.getElementById('scoreB').value) || 0;
+            // Critérios A e B — dados crus do período em kg (a nota é derivada em enrichScores/calcRanking)
+            const volumeVendido = parseFloat(document.getElementById('scoreVol').value) || 0;
+            const volumeAvarias = parseFloat(document.getElementById('scoreAvarias').value) || 0;
+            const qtdClientes = parseInt(document.getElementById('scoreClientes').value) || 0;
             const c = parseInt(document.getElementById('scoreC').value) || 0;
             const d = parseInt(document.getElementById('scoreD').value) || 0;
             const notes = document.getElementById('scoreNotes').value;
@@ -2266,13 +2372,15 @@
             try {
                 await authReady;
                 await addDoc(collection(db, 'pontuacoes'), {
-                    participantId: pid, date, a, b, c, d, notes,
+                    participantId: pid, date, c, d, notes,
+                    volumeVendido, volumeAvarias, qtdClientes,
                     criadoEm: serverTimestamp()
                 });
                 await refreshScores();
                 toast('Registrado!', 'Pontuação salva com sucesso.', 'success');
                 e.target.reset();
                 document.getElementById('scoreDate').valueAsDate = new Date();
+                calcVolumePreview();
                 loadAdminHistory();
             } catch (err) {
                 console.error(err);
@@ -2296,7 +2404,8 @@
                     <div class="activity">
                         <div class="activity-ico"><i class="fas fa-chart-bar"></i></div>
                         <div class="activity-body">
-                            <p><strong>${p ? p.name : '?'}</strong> — A:${s.a} B:${s.b} <strong style="color:var(--orange)">C:${s.c}</strong> D:${s.d}</p>
+                            <p><strong>${p ? p.name : '?'}</strong> — A:${s.a} B:${s.bNA ? '—' : s.b} <strong style="color:var(--orange)">C:${s.c}</strong> D:${s.d}</p>
+                            ${s.volumeVendido ? `<p style="color:#888;font-size:0.82rem">Vendido ${fmtKg(s.volumeVendido)} · Avaria ${fmtKg(s.volumeAvarias)} (${(s.avariaPct * 100).toFixed(1).replace('.', ',')}%) · ${s.qtdClientes} cliente(s) · ${fmtKg(s.volPorCliente)}/cliente</p>` : ''}
                             ${s.notes ? `<p style="color:#888;font-size:0.82rem">${s.notes}</p>` : ''}
                             <div class="activity-time">${s.date}</div>
                         </div>
@@ -2662,7 +2771,7 @@
             const p = parts.find(x => x.id === id);
             if (!p) return;
             const ps = scores.filter(s => s.participantId === id).sort((a, b) => new Date(b.date) - new Date(a.date));
-            const latest = ps[0] || { a: 0, b: 0, c: 0, d: 0 };
+            const latest = ps[0] || { a: 0, b: 0, bNA: true, c: 0, d: 0 };
             openModal(p.name, `
                 <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
                     <div class="p-avatar" style="width:56px;height:56px;font-size:1.3rem">${p.avatar}</div>
@@ -2670,7 +2779,7 @@
                 </div>
                 <div class="trend-grid" style="margin-bottom:20px">
                     <div class="trend-item"><div class="lbl">Trocas</div><div class="val">${latest.a}</div></div>
-                    <div class="trend-item"><div class="lbl">Vendas</div><div class="val">${latest.b}%</div></div>
+                    <div class="trend-item"><div class="lbl">Vendas</div><div class="val">${latest.bNA ? '—' : latest.b}</div></div>
                     <div class="trend-item"><div class="lbl">Precedentes</div><div class="val" style="color:var(--orange)">${latest.c}</div></div>
                     <div class="trend-item"><div class="lbl">Consultas</div><div class="val">${latest.d}</div></div>
                 </div>
@@ -2679,7 +2788,7 @@
                     <div class="activity">
                         <div class="activity-ico" style="background:var(--yellow);color:var(--black)"><i class="fas fa-calendar"></i></div>
                         <div class="activity-body">
-                            <p><strong>${s.date}</strong> — A:${s.a} B:${s.b} <strong style="color:var(--orange)">C:${s.c}</strong> D:${s.d}</p>
+                            <p><strong>${s.date}</strong> — A:${s.a} B:${s.bNA ? '—' : s.b} <strong style="color:var(--orange)">C:${s.c}</strong> D:${s.d}</p>
                             ${s.notes ? `<p style="color:#888;font-size:0.82rem">${s.notes}</p>` : ''}
                         </div>
                     </div>
