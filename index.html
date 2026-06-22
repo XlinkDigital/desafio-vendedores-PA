@@ -64,14 +64,18 @@
             opacity: 0.08;
             transform: rotate(15deg);
         }
-        .auth-logo {
-            font-size: 1.3rem;
-            font-weight: 900;
-            color: var(--green);
-            margin-bottom: 8px;
-            letter-spacing: 1px;
+        .auth-logo-img {
+            display: block;
+            height: auto;
+            width: auto;
+            max-width: 220px;
+            max-height: 90px;
+            margin: 0 auto 12px;
+            object-fit: contain;
         }
-        .auth-logo span { color: var(--yellow-dark); }
+        @media (max-width: 768px) {
+            .auth-logo-img { max-width: 180px; max-height: 72px; }
+        }
         .auth-box h1 {
             font-size: 1.5rem;
             font-weight: 900;
@@ -1181,7 +1185,7 @@
     ═══════════════════════════════════════════ -->
     <div class="auth-screen" id="telaSelecao">
         <div class="auth-box">
-            <div class="auth-logo">ARMAZÉM <span>DAS</span> BANANAS</div>
+            <img src="adb.png" alt="Armazém das Bananas" class="auth-logo-img">
             <h1>Desafio Vendedores 🍌</h1>
             <p>Escolha como deseja acessar</p>
             <div class="profile-cards">
@@ -1215,7 +1219,7 @@
             <div class="back-link" onclick="voltarParaSelecao()">
                 <i class="fas fa-arrow-left"></i> Voltar
             </div>
-            <div class="auth-logo">ARMAZÉM <span>DAS</span> BANANAS</div>
+            <img src="adb.png" alt="Armazém das Bananas" class="auth-logo-img">
             <h1>Acesso Vendedor</h1>
             <p>Informe seu nome e celular para entrar ou se cadastrar</p>
             <form onsubmit="acessarVendedor(event)">
@@ -1243,7 +1247,7 @@
             <div class="back-link" onclick="voltarParaSelecao()">
                 <i class="fas fa-arrow-left"></i> Voltar
             </div>
-            <div class="auth-logo">ARMAZÉM <span>DAS</span> BANANAS</div>
+            <img src="adb.png" alt="Armazém das Bananas" class="auth-logo-img">
             <h1>Acesso Administrativo</h1>
             <p>Identifique-se para acessar o painel</p>
             <form onsubmit="loginAdmin(event)">
