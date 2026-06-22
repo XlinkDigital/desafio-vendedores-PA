@@ -1549,7 +1549,7 @@
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 14px;">
                             <div class="form-group">
                                 <label>Participante</label>
-                                <select id="scoreParticipant" required style="width: 100%; padding: 14px; border: 2px solid #e8e8e8; border-radius: 12px; font-family: 'Montserrat';"></select>
+                                <select id="scoreParticipant" required onchange="preencherUltimoPrecedente()" style="width: 100%; padding: 14px; border: 2px solid #e8e8e8; border-radius: 12px; font-family: 'Montserrat';"></select>
                             </div>
                             <div class="form-group">
                                 <label>Data</label>
@@ -1595,6 +1595,7 @@
                             <div class="input-group c">
                                 <label><i class="fas fa-star"></i> Precedentes</label>
                                 <input type="number" id="scoreC" min="0" placeholder="0" required>
+                                <small id="precedenteHint" style="display:none; font-size:0.72rem; color:var(--green-dark); font-weight:600; margin-top:6px;"></small>
                             </div>
                             <div class="input-group d">
                                 <label><i class="fas fa-search-dollar"></i> Consultas</label>
@@ -2368,10 +2369,30 @@
                 parts.filter(p => p.active).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
             document.getElementById('scoreDate').valueAsDate = new Date();
             resetImportUI();
+            preencherUltimoPrecedente();
             calcVolumePreview();
             loadAdminHistory();
         }
         window.initRegistrar = initRegistrar;
+        // Ao escolher o vendedor, traz o nº de Precedentes do último registro dele (editável).
+        function preencherUltimoPrecedente() {
+            const pid = document.getElementById('scoreParticipant').value;
+            const campoC = document.getElementById('scoreC');
+            const hint = document.getElementById('precedenteHint');
+            if (!pid) { hint.style.display = 'none'; campoC.value = ''; return; }
+            const hist = getScores().filter(s => s.participantId === pid)
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
+            if (hist.length > 0 && hist[0].c != null) {
+                campoC.value = hist[0].c;
+                hint.textContent = `Preenchido com o último registro (${hist[0].date}). Ajuste se mudou.`;
+                hint.style.display = 'block';
+            } else {
+                campoC.value = '';
+                hint.textContent = 'Primeiro registro deste vendedor — informe os precedentes.';
+                hint.style.display = 'block';
+            }
+        }
+        window.preencherUltimoPrecedente = preencherUltimoPrecedente;
         // Formata número em kg (1.234 kg)
         function fmtKg(v) {
             return (Number(v) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' kg';
@@ -2507,6 +2528,7 @@
                 e.target.reset();
                 document.getElementById('scoreDate').valueAsDate = new Date();
                 resetImportUI();
+                preencherUltimoPrecedente();
                 calcVolumePreview();
                 loadAdminHistory();
             } catch (err) {
