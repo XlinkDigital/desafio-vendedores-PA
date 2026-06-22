@@ -865,6 +865,22 @@
             text-align: center;
             font-size: 1rem;
         }
+        /* IMPORT XLSX */
+        .xlsx-import {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border: 2px dashed #cfe8d6;
+            border-radius: 12px;
+            background: var(--green-light);
+            cursor: pointer;
+            transition: border-color .15s, background .15s;
+            font-size: 0.85rem;
+        }
+        .xlsx-import:hover { border-color: var(--green); background: #ddf3e2; }
+        .xlsx-import i { color: #1d6f42; font-size: 1.4rem; }
+        .xlsx-import.ok { border-style: solid; border-color: var(--green); }
         /* UPLOAD */
         .upload-zone {
             border: 3px dashed #ddd;
@@ -1542,6 +1558,19 @@
                         </div>
                         <div class="input-group a" style="margin-bottom:14px;">
                             <label><i class="fas fa-weight-hanging"></i> Volume do período (kg) — base dos critérios A e B</label>
+                            <p style="font-size:0.76rem; color:var(--gray-dark); margin:4px 0 10px;">Importe os relatórios <strong>.xlsx</strong> (aba "Resumo") para preencher automaticamente — você ainda pode ajustar os valores antes de salvar.</p>
+                            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-bottom:12px;">
+                                <label class="xlsx-import">
+                                    <i class="fas fa-file-excel"></i>
+                                    <span><strong>Relatório de Vendas</strong><br><small id="vendasFileName" style="color:var(--gray-dark)">Clique para enviar (.xlsx)</small></span>
+                                    <input type="file" accept=".xlsx,.xls" onchange="importarVendas(this)" style="display:none">
+                                </label>
+                                <label class="xlsx-import">
+                                    <i class="fas fa-file-excel"></i>
+                                    <span><strong>Relatório de Avarias</strong><br><small id="avariasFileName" style="color:var(--gray-dark)">Clique para enviar (.xlsx)</small></span>
+                                    <input type="file" accept=".xlsx,.xls" onchange="importarAvarias(this)" style="display:none">
+                                </label>
+                            </div>
                             <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:4px;">
                                 <div>
                                     <label style="font-size:0.72rem; color:var(--gray-dark); font-weight:600; display:block; margin-bottom:4px;">Volume vendido (kg)</label>
@@ -1678,6 +1707,8 @@
             <div class="modal-body" id="modalBody"></div>
         </div>
     </div>
+    <!-- SheetJS (leitura de .xlsx no navegador) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <!-- FIREBASE SDK (Modular via CDN) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -2336,6 +2367,7 @@
             document.getElementById('scoreParticipant').innerHTML = '<option value="">Selecione...</option>' +
                 parts.filter(p => p.active).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
             document.getElementById('scoreDate').valueAsDate = new Date();
+            resetImportUI();
             calcVolumePreview();
             loadAdminHistory();
         }
@@ -2355,6 +2387,100 @@
             document.getElementById('previewVolCliente').textContent = fmtKg(volCliente);
         }
         window.calcVolumePreview = calcVolumePreview;
+        // ── IMPORTAÇÃO DE RELATÓRIOS .XLSX (SheetJS) ──────────────────
+        // Converte texto/número pt-BR ("1.234,5 kg") em número.
+        function parseNum(v) {
+            if (typeof v === 'number') return v;
+            if (v == null) return 0;
+            let s = String(v).trim().replace(/[^\d.,-]/g, '');
+            if (s.includes(',')) {
+                // vírgula = decimal (pt-BR) → pontos são separador de milhar
+                s = s.replace(/\./g, '').replace(',', '.');
+            } else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) {
+                // só pontos, em grupos de 3 dígitos → separador de milhar (ex.: 50.000 = 50000)
+                s = s.replace(/\./g, '');
+            }
+            return parseFloat(s) || 0;
+        }
+        // Lê a aba "Resumo" (Cliente | Quantidade (kg)) e devolve { total, clientes }.
+        // total = valor da linha "TOTAL GERAL"; clientes = nº de linhas de cliente
+        // (exclui cabeçalho, TOTAL GERAL e linhas com cliente vazio).
+        function parseResumo(arrayBuffer) {
+            if (typeof XLSX === 'undefined') throw new Error('Biblioteca de leitura (.xlsx) não carregou. Verifique a conexão.');
+            const wb = XLSX.read(arrayBuffer, { type: 'array' });
+            // procura a aba "Resumo" sem diferenciar maiúsc/minúsc
+            const nomeAba = wb.SheetNames.find(n => n.trim().toLowerCase() === 'resumo');
+            if (!nomeAba) throw new Error('Aba "Resumo" não encontrada na planilha.');
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[nomeAba], { header: 1, defval: '' });
+            // localiza a linha de cabeçalho e as colunas Cliente / Quantidade
+            let hIdx = -1, colCli = -1, colQtd = -1;
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].map(c => String(c).trim().toLowerCase());
+                const ci = cells.findIndex(c => c === 'cliente');
+                const qi = cells.findIndex(c => c.includes('quantidade'));
+                if (ci !== -1 && qi !== -1) { hIdx = i; colCli = ci; colQtd = qi; break; }
+            }
+            if (hIdx === -1) throw new Error('Cabeçalho "Cliente" / "Quantidade (kg)" não encontrado na aba "Resumo".');
+            let total = null, clientes = 0;
+            for (let i = hIdx + 1; i < rows.length; i++) {
+                const nome = String(rows[i][colCli] ?? '').trim();
+                if (!nome) continue; // linha de cliente vazio
+                if (nome.toUpperCase().replace(/\s+/g, ' ') === 'TOTAL GERAL') {
+                    total = parseNum(rows[i][colQtd]);
+                    continue;
+                }
+                clientes++;
+            }
+            if (total === null) throw new Error('Linha "TOTAL GERAL" não encontrada na aba "Resumo".');
+            return { total, clientes };
+        }
+        async function lerResumoDoArquivo(file) {
+            const buf = await file.arrayBuffer();
+            return parseResumo(buf);
+        }
+        async function importarVendas(input) {
+            const file = input.files[0];
+            if (!file) return;
+            try {
+                const { total, clientes } = await lerResumoDoArquivo(file);
+                document.getElementById('scoreVol').value = total;
+                document.getElementById('scoreClientes').value = clientes;
+                document.getElementById('vendasFileName').textContent = `${file.name} ✓`;
+                input.closest('.xlsx-import').classList.add('ok');
+                calcVolumePreview();
+                toast('Vendas importado!', `Volume vendido ${fmtKg(total)} · ${clientes} cliente(s). Confira antes de salvar.`, 'success');
+            } catch (err) {
+                console.error(err);
+                input.value = '';
+                toast('Erro ao ler Vendas', err.message || 'Confira a aba "Resumo" do arquivo.', 'error');
+            }
+        }
+        window.importarVendas = importarVendas;
+        async function importarAvarias(input) {
+            const file = input.files[0];
+            if (!file) return;
+            try {
+                const { total } = await lerResumoDoArquivo(file);
+                document.getElementById('scoreAvarias').value = total;
+                document.getElementById('avariasFileName').textContent = `${file.name} ✓`;
+                input.closest('.xlsx-import').classList.add('ok');
+                calcVolumePreview();
+                toast('Avarias importado!', `Volume de avarias ${fmtKg(total)}. Confira antes de salvar.`, 'success');
+            } catch (err) {
+                console.error(err);
+                input.value = '';
+                toast('Erro ao ler Avarias', err.message || 'Confira a aba "Resumo" do arquivo.', 'error');
+            }
+        }
+        window.importarAvarias = importarAvarias;
+        // Limpa os rótulos/estado dos botões de import
+        function resetImportUI() {
+            document.querySelectorAll('.xlsx-import').forEach(el => el.classList.remove('ok'));
+            const v = document.getElementById('vendasFileName');
+            const a = document.getElementById('avariasFileName');
+            if (v) v.textContent = 'Clique para enviar (.xlsx)';
+            if (a) a.textContent = 'Clique para enviar (.xlsx)';
+        }
         async function saveScore(e) {
             e.preventDefault();
             const pid = document.getElementById('scoreParticipant').value;
@@ -2380,6 +2506,7 @@
                 toast('Registrado!', 'Pontuação salva com sucesso.', 'success');
                 e.target.reset();
                 document.getElementById('scoreDate').valueAsDate = new Date();
+                resetImportUI();
                 calcVolumePreview();
                 loadAdminHistory();
             } catch (err) {
