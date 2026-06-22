@@ -329,13 +329,13 @@
             align-items: center;
             gap: 12px;
         }
-        .header-logo {
-            font-size: 1rem;
-            font-weight: 900;
-            color: var(--yellow);
-            letter-spacing: 1px;
+        .header-logo-img {
+            height: 44px;
+            width: auto;
+            max-width: 200px;
+            display: block;
+            object-fit: contain;
         }
-        .header-logo span { color: var(--white); }
         .header-title {
             color: var(--white);
             font-size: 1.1rem;
@@ -1158,6 +1158,7 @@
         @media (max-width: 768px) {
             .auth-box { padding: 28px; }
             .header-title { display: none; }
+            .header-logo-img { height: 34px; max-width: 150px; }
             .nav-btn { min-width: auto; padding: 10px 12px; font-size: 0.75rem; }
             .nav-btn i { font-size: 1rem; }
             .input-grid { grid-template-columns: 1fr; }
@@ -1268,7 +1269,7 @@
         <header class="header">
             <div class="header-inner">
                 <div class="header-brand">
-                    <div class="header-logo">ARMAZÉM <span>DAS</span> BANANAS</div>
+                    <img src="adb.png" alt="Armazém das Bananas" class="header-logo-img">
                     <div class="header-title">Desafio Vendedores</div>
                 </div>
                 <div class="header-actions">
