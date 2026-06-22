@@ -1821,23 +1821,6 @@
         }
         window.toast = toast;
         // ═══════════════════════════════════════════
-        // ERROR HANDLER
-        // ═══════════════════════════════════════════
-        function authErrorMsg(code) {
-            const map = {
-                'auth/invalid-email': 'Email inválido. Verifique o formato.',
-                'auth/user-disabled': 'Esta conta foi desativada.',
-                'auth/user-not-found': 'Usuário não encontrado. Verifique o email.',
-                'auth/wrong-password': 'Senha incorreta. Tente novamente.',
-                'auth/email-already-in-use': 'Este email já está cadastrado.',
-                'auth/weak-password': 'Senha muito fraca. Use pelo menos 6 caracteres.',
-                'auth/invalid-credential': 'Email ou senha incorretos.',
-                'auth/too-many-requests': 'Muitas tentativas. Aguarde um momento.',
-                'auth/network-request-failed': 'Erro de conexão. Verifique sua internet.'
-            };
-            return map[code] || 'Ocorreu um erro. Tente novamente.';
-        }
-        // ═══════════════════════════════════════════
         // VENDEDOR: ACESSO POR NOME + CELULAR
         // ═══════════════════════════════════════════
         async function acessarVendedor(e) {
@@ -2203,10 +2186,17 @@
         // ═══════════════════════════════════════════
         // ADMIN VIEWS
         // ═══════════════════════════════════════════
-        function loadAdmRanking(filter = 'all') {
-            const ranking = calcRanking();
+        let admRankingFilter = 'all';
+        function loadAdmRanking(filter = admRankingFilter) {
+            admRankingFilter = filter;
+            // Ordena pelo critério escolhido (ou pelo total quando "Todos")
+            const ranking = calcRanking().slice().sort((a, b) =>
+                parseFloat(b.scores[filter] ?? b.scores.total) - parseFloat(a.scores[filter] ?? a.scores.total)
+            );
             const top3 = ranking.slice(0, 3);
             const order = [1, 0, 2];
+            const pts = p => filter === 'all' ? p.scores.total : p.scores[filter];
+            const hl = key => filter === key ? 'background:var(--green-light);' : '';
             document.getElementById('podiumAdmin').innerHTML = order.map(i => {
                 const p = top3[i];
                 if (!p) return '';
@@ -2215,7 +2205,7 @@
                         ${i === 0 ? '<div class="podium-crown">👑</div>' : ''}
                         <div class="podium-ava">${p.avatar}</div>
                         <div class="podium-nm">${p.name}</div>
-                        <div class="podium-pts">${p.scores.total}</div>
+                        <div class="podium-pts">${pts(p)}</div>
                         <div class="podium-base">${i + 1}º</div>
                     </div>
                 `;
@@ -2231,10 +2221,10 @@
                                 <div><div style="font-weight:800">${p.name}</div><div style="font-size:0.78rem;color:#888">${p.area}</div></div>
                             </div>
                         </td>
-                        <td><div style="font-weight:700">${p.scores.a}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill a" style="width:${p.scores.a}%"></div></div></td>
-                        <td><div style="font-weight:700">${p.scores.b}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill b" style="width:${p.scores.b}%"></div></div></td>
-                        <td><div style="font-weight:700;color:var(--orange)">${p.scores.c}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill c" style="width:${p.scores.c}%"></div></div></td>
-                        <td><div style="font-weight:700">${p.scores.d}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill d" style="width:${p.scores.d}%"></div></div></td>
+                        <td style="${hl('a')}"><div style="font-weight:700">${p.scores.a}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill a" style="width:${p.scores.a}%"></div></div></td>
+                        <td style="${hl('b')}"><div style="font-weight:700">${p.scores.b}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill b" style="width:${p.scores.b}%"></div></div></td>
+                        <td style="${hl('c')}"><div style="font-weight:700;color:var(--orange)">${p.scores.c}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill c" style="width:${p.scores.c}%"></div></div></td>
+                        <td style="${hl('d')}"><div style="font-weight:700">${p.scores.d}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill d" style="width:${p.scores.d}%"></div></div></td>
                         <td><strong style="color:var(--green);font-size:1.05rem">${p.scores.total}</strong></td>
                         <td><button class="header-btn" style="color:var(--green);background:var(--green-light)" onclick="showParticipantModal('${p.id}')"><i class="fas fa-eye"></i></button></td>
                     </tr>
@@ -2245,7 +2235,7 @@
         function filterAdmRanking(criteria) {
             document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
             event.target.classList.add('active');
-            loadAdmRanking();
+            loadAdmRanking(criteria);
         }
         window.filterAdmRanking = filterAdmRanking;
         function initRegistrar() {
