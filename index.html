@@ -1207,7 +1207,7 @@
         </div>
     </div>
     <!-- ═══════════════════════════════════════════
-         TELA 2A: LOGIN VENDEDOR (Firebase)
+         TELA 2A: ACESSO VENDEDOR (Nome + Celular)
     ═══════════════════════════════════════════ -->
     <div class="auth-screen" id="telaVendedor" style="display: none;">
         <div class="auth-box">
@@ -1216,70 +1216,22 @@
             </div>
             <div class="auth-logo">ARMAZÉM <span>DAS</span> BANANAS</div>
             <h1>Acesso Vendedor</h1>
-            <p>Entre com sua conta ou cadastre-se</p>
-            <div class="form-tabs">
-                <button class="form-tab active" onclick="switchTab('vend-entrar')">Entrar</button>
-                <button class="form-tab" onclick="switchTab('vend-criar')">Criar Conta</button>
-            </div>
-            <!-- ENTRAR -->
-            <div class="form-panel active" id="panelVendEntrar">
-                <form onsubmit="loginVendedor(event)">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="vendLoginEmail" placeholder="seu@email.com" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Senha</label>
-                        <input type="password" id="vendLoginSenha" placeholder="Sua senha" required>
-                    </div>
-                    <div class="error-box" id="vendLoginErro"></div>
-                    <button type="submit" class="auth-btn" id="btnVendLogin">
-                        Entrar
-                    </button>
-                    <a class="form-link" onclick="mostrarReset('vendedor')">Esqueceu sua senha?</a>
-                </form>
-            </div>
-            <!-- CRIAR CONTA -->
-            <div class="form-panel" id="panelVendCriar">
-                <form onsubmit="criarContaVendedor(event)">
-                    <div class="form-group">
-                        <label>Nome completo</label>
-                        <input type="text" id="vendRegNome" placeholder="Seu nome" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="vendRegEmail" placeholder="seu@email.com" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Senha</label>
-                        <input type="password" id="vendRegSenha" placeholder="Mínimo 6 caracteres" required minlength="6">
-                    </div>
-                    <div class="form-group">
-                        <label>Confirmar senha</label>
-                        <input type="password" id="vendRegSenha2" placeholder="Repita a senha" required>
-                    </div>
-                    <div class="error-box" id="vendRegErro"></div>
-                    <div class="success-box" id="vendRegSucesso"></div>
-                    <button type="submit" class="auth-btn" id="btnVendReg">
-                        Criar Conta
-                    </button>
-                </form>
-            </div>
-            <!-- RESET SENHA -->
-            <div class="form-panel" id="panelVendReset">
-                <form onsubmit="resetSenha(event)">
-                    <div class="form-group">
-                        <label>Email cadastrado</label>
-                        <input type="email" id="vendResetEmail" placeholder="seu@email.com" required>
-                    </div>
-                    <div class="error-box" id="vendResetErro"></div>
-                    <div class="success-box" id="vendResetSucesso"></div>
-                    <button type="submit" class="auth-btn" id="btnVendReset">
-                        Enviar link de redefinição
-                    </button>
-                    <a class="form-link" onclick="voltarLoginVendedor()">Voltar para login</a>
-                </form>
-            </div>
+            <p>Informe seu nome e celular para entrar ou se cadastrar</p>
+            <form onsubmit="acessarVendedor(event)">
+                <div class="form-group">
+                    <label>Nome completo</label>
+                    <input type="text" id="vendNome" placeholder="Seu nome" required>
+                </div>
+                <div class="form-group">
+                    <label>Número de celular</label>
+                    <input type="tel" id="vendCelular" placeholder="(00) 00000-0000" required>
+                </div>
+                <div class="error-box" id="vendErro"></div>
+                <div class="success-box" id="vendSucesso"></div>
+                <button type="submit" class="auth-btn" id="btnVendAcessar">
+                    Entrar / Cadastrar
+                </button>
+            </form>
         </div>
     </div>
     <!-- ═══════════════════════════════════════════
@@ -1358,6 +1310,9 @@
                 </button>
                 <button class="nav-btn" onclick="goTo('adm-participantes')">
                     <i class="fas fa-users"></i> Participantes
+                </button>
+                <button class="nav-btn" onclick="goTo('adm-solicitacoes')">
+                    <i class="fas fa-user-clock"></i> Solicitações <span id="pendingBadge" style="display:none;background:var(--red);color:#fff;border-radius:20px;padding:1px 7px;font-size:0.7rem;margin-left:2px;"></span>
                 </button>
                 <button class="nav-btn" onclick="goTo('adm-evolucao')">
                     <i class="fas fa-chart-line"></i> Evolução
@@ -1627,6 +1582,16 @@
                 </div>
             </section>
             <!-- ═══════════════════════════════════════════
+                 ADMIN: SOLICITAÇÕES PENDENTES
+            ═══════════════════════════════════════════ -->
+            <section class="section" id="adm-solicitacoes">
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-user-clock"></i> Solicitações de Acesso</div>
+                    <p style="color:var(--gray-dark);font-size:0.88rem;margin-bottom:16px;">Vendedores que se cadastraram e aguardam autorização para entrar no desafio.</p>
+                    <div id="adminPending"></div>
+                </div>
+            </section>
+            <!-- ═══════════════════════════════════════════
                  ADMIN: EVOLUÇÃO
             ═══════════════════════════════════════════ -->
             <section class="section" id="adm-evolucao">
@@ -1694,21 +1659,23 @@
             <div class="modal-body" id="modalBody"></div>
         </div>
     </div>
-    <!-- FIREBASE SDK (Modular via CDN) — APENAS PARA VENDEDOR -->
+    <!-- FIREBASE SDK (Modular via CDN) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import {
             getAuth,
-            createUserWithEmailAndPassword,
-            signInWithEmailAndPassword,
-            signOut,
-            sendPasswordResetEmail,
-            onAuthStateChanged
+            signInAnonymously
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import {
             getFirestore,
+            collection,
+            getDocs,
+            addDoc,
+            updateDoc,
+            deleteDoc as fbDeleteDoc,
             doc,
-            setDoc,
+            query,
+            where,
             serverTimestamp
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         // ═══════════════════════════════════════════
@@ -1736,6 +1703,72 @@
         let currentUser = null;
         let currentUserData = null;
         let isAdminSession = false;
+        let currentSection = null;
+        // ═══════════════════════════════════════════
+        // CAMADA DE DADOS — FIRESTORE (compartilhado)
+        // ═══════════════════════════════════════════
+        const DB = { participants: [], scores: [] };
+        function getParticipants() { return DB.participants; }
+        function getScores() { return DB.scores; }
+        function initials(nome) {
+            return (nome || '?').trim().split(/\s+/).map(n => n[0] || '').join('').toUpperCase().slice(0, 2) || '?';
+        }
+        function soDigitos(v) { return (v || '').replace(/\D/g, ''); }
+        // Login anônimo: só dá contexto de auth pro Firestore (ninguém loga por conta).
+        const authReady = signInAnonymously(auth)
+            .then(() => true)
+            .catch(err => { console.error('Falha no login anônimo:', err); return false; });
+        async function refreshParticipants() {
+            await authReady;
+            const snap = await getDocs(collection(db, 'participantes'));
+            DB.participants = snap.docs.map(d => {
+                const x = d.data();
+                return {
+                    id: d.id,
+                    name: x.nome || '',
+                    area: x.rota || 'Vendas',
+                    rota: x.rota || '',
+                    celular: x.celular || '',
+                    avatar: initials(x.nome),
+                    active: x.ativo === true,
+                    status: x.status || 'pendente'
+                };
+            });
+        }
+        async function refreshScores() {
+            await authReady;
+            const snap = await getDocs(collection(db, 'pontuacoes'));
+            DB.scores = snap.docs.map(d => {
+                const x = d.data();
+                return {
+                    id: d.id,
+                    participantId: x.participantId,
+                    date: x.date,
+                    a: Number(x.a) || 0,
+                    b: Number(x.b) || 0,
+                    c: Number(x.c) || 0,
+                    d: Number(x.d) || 0,
+                    notes: x.notes || ''
+                };
+            });
+        }
+        async function refreshAll() {
+            try {
+                await Promise.all([refreshParticipants(), refreshScores()]);
+                updatePendingBadge();
+            } catch (err) {
+                console.error('Erro ao carregar dados:', err);
+                toast('Erro', 'Não foi possível carregar os dados do servidor.', 'error');
+            }
+        }
+        window.refreshAll = refreshAll;
+        function updatePendingBadge() {
+            const badge = document.getElementById('pendingBadge');
+            if (!badge) return;
+            const n = DB.participants.filter(p => p.status === 'pendente').length;
+            badge.textContent = n;
+            badge.style.display = n > 0 ? 'inline-block' : 'none';
+        }
         // ═══════════════════════════════════════════
         // UI HELPERS
         // ═══════════════════════════════════════════
@@ -1770,29 +1803,6 @@
             showTela('telaSelecao');
         }
         window.voltarParaSelecao = voltarParaSelecao;
-        function switchTab(tab) {
-            document.querySelectorAll('.form-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
-            event.target.classList.add('active');
-            const panelId = 'panel' + tab.split('-').map((w, i) => i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w.charAt(0).toUpperCase() + w.slice(1)).join('');
-            document.getElementById(panelId).classList.add('active');
-        }
-        window.switchTab = switchTab;
-        function mostrarReset(tipo) {
-            if (tipo === 'vendedor') {
-                document.getElementById('panelVendEntrar').classList.remove('active');
-                document.getElementById('panelVendCriar').classList.remove('active');
-                document.getElementById('panelVendReset').classList.add('active');
-            }
-        }
-        window.mostrarReset = mostrarReset;
-        function voltarLoginVendedor() {
-            document.getElementById('panelVendReset').classList.remove('active');
-            document.getElementById('panelVendEntrar').classList.add('active');
-            document.querySelectorAll('.form-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.form-tab')[0].classList.add('active');
-        }
-        window.voltarLoginVendedor = voltarLoginVendedor;
         // ═══════════════════════════════════════════
         // TOAST
         // ═══════════════════════════════════════════
@@ -1828,103 +1838,68 @@
             return map[code] || 'Ocorreu um erro. Tente novamente.';
         }
         // ═══════════════════════════════════════════
-        // VENDEDOR: CRIAR CONTA (Firebase)
+        // VENDEDOR: ACESSO POR NOME + CELULAR
         // ═══════════════════════════════════════════
-        async function criarContaVendedor(e) {
+        async function acessarVendedor(e) {
             e.preventDefault();
-            const nome = document.getElementById('vendRegNome').value.trim();
-            const email = document.getElementById('vendRegEmail').value.trim();
-            const senha = document.getElementById('vendRegSenha').value;
-            const senha2 = document.getElementById('vendRegSenha2').value;
-            const erro = document.getElementById('vendRegErro');
-            const sucesso = document.getElementById('vendRegSucesso');
-            const btn = document.getElementById('btnVendReg');
+            const nome = document.getElementById('vendNome').value.trim();
+            const celular = soDigitos(document.getElementById('vendCelular').value);
+            const erro = document.getElementById('vendErro');
+            const sucesso = document.getElementById('vendSucesso');
+            const btn = document.getElementById('btnVendAcessar');
             erro.classList.remove('show');
             sucesso.classList.remove('show');
-            if (senha !== senha2) {
-                erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>As senhas não coincidem</span>';
+            if (celular.length < 10) {
+                erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Informe um celular válido com DDD.</span>';
                 erro.classList.add('show');
                 return;
             }
             btn.disabled = true;
-            btn.innerHTML = 'Criando conta... <span class="loading"></span>';
+            btn.innerHTML = 'Verificando... <span class="loading"></span>';
             try {
-                const cred = await createUserWithEmailAndPassword(auth, email, senha);
-                await setDoc(doc(db, 'users', cred.user.uid), {
-                    nome: nome,
-                    email: email,
-                    role: 'vendedor',
-                    createdAt: serverTimestamp()
-                });
-                sucesso.innerHTML = '<i class="fas fa-check-circle"></i> <span>Conta criada! Faça login.</span>';
-                sucesso.classList.add('show');
-                setTimeout(() => {
-                    switchTab('vend-entrar');
-                    document.getElementById('vendLoginEmail').value = email;
-                    document.getElementById('vendRegNome').value = '';
-                    document.getElementById('vendRegEmail').value = '';
-                    document.getElementById('vendRegSenha').value = '';
-                    document.getElementById('vendRegSenha2').value = '';
-                    sucesso.classList.remove('show');
-                }, 1500);
+                await authReady;
+                const snap = await getDocs(query(collection(db, 'participantes'), where('celular', '==', celular)));
+                if (snap.empty) {
+                    // Não existe → novo cadastro pendente
+                    await addDoc(collection(db, 'participantes'), {
+                        nome: nome,
+                        celular: celular,
+                        rota: '',
+                        ativo: false,
+                        status: 'pendente',
+                        criadoEm: serverTimestamp()
+                    });
+                    sucesso.innerHTML = '<i class="fas fa-check-circle"></i> <span>Cadastro enviado! Aguarde a autorização do gestor.</span>';
+                    sucesso.classList.add('show');
+                    document.getElementById('vendNome').value = '';
+                    document.getElementById('vendCelular').value = '';
+                    return;
+                }
+                const docSnap = snap.docs[0];
+                const dados = docSnap.data();
+                const status = dados.status || 'pendente';
+                if (status === 'aprovado' && dados.ativo === true) {
+                    currentUser = { displayName: dados.nome, email: null };
+                    currentUserData = { nome: dados.nome, role: 'vendedor', participantId: docSnap.id };
+                    isAdminSession = false;
+                    await entrarApp();
+                } else if (status === 'recusado') {
+                    erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Seu acesso não foi autorizado. Fale com o gestor.</span>';
+                    erro.classList.add('show');
+                } else {
+                    sucesso.innerHTML = '<i class="fas fa-clock"></i> <span>Aguardando autorização do gestor.</span>';
+                    sucesso.classList.add('show');
+                }
             } catch (err) {
-                erro.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>${authErrorMsg(err.code)}</span>`;
+                console.error(err);
+                erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Erro de conexão. Tente novamente.</span>';
                 erro.classList.add('show');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = 'Criar Conta';
+                btn.innerHTML = 'Entrar / Cadastrar';
             }
         }
-        window.criarContaVendedor = criarContaVendedor;
-        // ═══════════════════════════════════════════
-        // VENDEDOR: LOGIN (Firebase)
-        // ═══════════════════════════════════════════
-        async function loginVendedor(e) {
-            e.preventDefault();
-            const email = document.getElementById('vendLoginEmail').value.trim();
-            const senha = document.getElementById('vendLoginSenha').value;
-            const erro = document.getElementById('vendLoginErro');
-            const btn = document.getElementById('btnVendLogin');
-            erro.classList.remove('show');
-            btn.disabled = true;
-            btn.innerHTML = 'Entrando... <span class="loading"></span>';
-            try {
-                await signInWithEmailAndPassword(auth, email, senha);
-            } catch (err) {
-                erro.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>${authErrorMsg(err.code)}</span>`;
-                erro.classList.add('show');
-                btn.disabled = false;
-                btn.innerHTML = 'Entrar';
-            }
-        }
-        window.loginVendedor = loginVendedor;
-        // ═══════════════════════════════════════════
-        // VENDEDOR: RESET SENHA
-        // ═══════════════════════════════════════════
-        async function resetSenha(e) {
-            e.preventDefault();
-            const email = document.getElementById('vendResetEmail').value.trim();
-            const erro = document.getElementById('vendResetErro');
-            const sucesso = document.getElementById('vendResetSucesso');
-            const btn = document.getElementById('btnVendReset');
-            erro.classList.remove('show');
-            sucesso.classList.remove('show');
-            btn.disabled = true;
-            btn.innerHTML = 'Enviando... <span class="loading"></span>';
-            try {
-                await sendPasswordResetEmail(auth, email);
-                sucesso.innerHTML = '<i class="fas fa-check-circle"></i> <span>Enviamos um link de redefinição para o seu e-mail.</span>';
-                sucesso.classList.add('show');
-                document.getElementById('vendResetEmail').value = '';
-            } catch (err) {
-                erro.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>${authErrorMsg(err.code)}</span>`;
-                erro.classList.add('show');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = 'Enviar link de redefinição';
-            }
-        }
-        window.resetSenha = resetSenha;
+        window.acessarVendedor = acessarVendedor;
         // ═══════════════════════════════════════════
         // ADMIN: LOGIN COM CHAVE (Sem Firebase)
         // ═══════════════════════════════════════════
@@ -1950,11 +1925,14 @@
         // ═══════════════════════════════════════════
         // ENTRAR NO APP
         // ═══════════════════════════════════════════
-        function entrarApp() {
+        async function entrarApp() {
             document.querySelectorAll('.auth-screen').forEach(s => s.style.display = 'none');
             document.getElementById('app').style.display = 'block';
             document.getElementById('headerName').textContent = currentUserData.nome || currentUser.displayName || 'Usuário';
             document.getElementById('headerRole').textContent = currentUserData.role === 'admin' ? 'ADMIN' : 'VENDEDOR';
+            await refreshAll();
+            document.getElementById('dateAdmin').textContent = new Date().toLocaleDateString('pt-BR');
+            document.getElementById('dateGeral').textContent = new Date().toLocaleDateString('pt-BR');
             if (currentUserData.role === 'admin') {
                 document.getElementById('navAdmin').style.display = 'flex';
                 document.getElementById('navVendedor').style.display = 'none';
@@ -1962,21 +1940,21 @@
             } else {
                 document.getElementById('navVendedor').style.display = 'flex';
                 document.getElementById('navAdmin').style.display = 'none';
+                // Vendedor: trava os seletores no próprio nome
                 initParticipantSelects();
+                const sel = document.getElementById('selParticipant');
+                const selE = document.getElementById('selEvolucao');
+                if (sel) { sel.value = currentUserData.participantId; sel.disabled = true; }
+                if (selE) { selE.value = currentUserData.participantId; selE.disabled = true; }
                 goTo('meu-ranking');
             }
-            document.getElementById('dateAdmin').textContent = new Date().toLocaleDateString('pt-BR');
-            document.getElementById('dateGeral').textContent = new Date().toLocaleDateString('pt-BR');
             toast('Bem-vindo!', `Olá, ${currentUserData.nome || 'Vendedor'}!`, 'success');
         }
         window.entrarApp = entrarApp;
         // ═══════════════════════════════════════════
         // LOGOUT
         // ═══════════════════════════════════════════
-        async function logout() {
-            if (!isAdminSession && auth.currentUser) {
-                await signOut(auth);
-            }
+        function logout() {
             isAdminSession = false;
             currentUser = null;
             currentUserData = null;
@@ -1987,41 +1965,20 @@
             document.getElementById('adminNome').value = '';
             document.getElementById('adminChave').value = '';
             document.getElementById('adminLoginErro').classList.remove('show');
+            // Reabilita os seletores do vendedor (haviam sido travados)
+            const sel = document.getElementById('selParticipant');
+            const selE = document.getElementById('selEvolucao');
+            if (sel) sel.disabled = false;
+            if (selE) selE.disabled = false;
             showTela('telaSelecao');
             toast('Até logo!', 'Você saiu da conta.', 'info');
         }
         window.logout = logout;
         // ═══════════════════════════════════════════
-        // FIREBASE AUTH STATE LISTENER (Vendedor)
-        // ═══════════════════════════════════════════
-        onAuthStateChanged(auth, async (user) => {
-            if (user && !isAdminSession) {
-                currentUser = user;
-                try {
-                    const { getDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-                    const userDoc = await getDoc(doc(db, 'users', user.uid));
-                    if (!userDoc.exists()) {
-                        toast('Erro', 'Dados do usuário não encontrados.', 'error');
-                        await signOut(auth);
-                        return;
-                    }
-                    currentUserData = userDoc.data();
-                    if (currentUserData.role !== 'vendedor') {
-                        toast('Erro', 'Tipo de conta inválido.', 'error');
-                        await signOut(auth);
-                        return;
-                    }
-                    entrarApp();
-                } catch (err) {
-                    console.error(err);
-                    toast('Erro', 'Não foi possível carregar seus dados.', 'error');
-                }
-            }
-        });
-        // ═══════════════════════════════════════════
         // NAVIGATION
         // ═══════════════════════════════════════════
-        function goTo(sectionId) {
+        async function goTo(sectionId) {
+            currentSection = sectionId;
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             const target = document.getElementById(sectionId);
@@ -2029,6 +1986,10 @@
             const navBtn = document.querySelector(`.nav-btn[onclick="goTo('${sectionId}')"]`);
             if (navBtn) navBtn.classList.add('active');
             window.scrollTo(0, 0);
+            // Recarrega dados compartilhados antes de renderizar seções que dependem deles
+            const precisaDados = ['meu-ranking', 'o-que-cumprir', 'minha-evolucao', 'ranking-geral',
+                'adm-ranking', 'adm-registrar', 'adm-participantes', 'adm-solicitacoes', 'adm-evolucao'];
+            if (precisaDados.includes(sectionId)) await refreshAll();
             if (sectionId === 'meu-ranking') loadMeuRanking();
             if (sectionId === 'o-que-cumprir') loadOQueCumprir();
             if (sectionId === 'minha-evolucao') loadMinhaEvolucao();
@@ -2036,6 +1997,7 @@
             if (sectionId === 'adm-ranking') loadAdmRanking();
             if (sectionId === 'adm-registrar') initRegistrar();
             if (sectionId === 'adm-participantes') loadAdmParticipants();
+            if (sectionId === 'adm-solicitacoes') loadAdmPending();
             if (sectionId === 'adm-evolucao') initAdminEvo();
             if (sectionId === 'adm-documentos') loadAdmDocs();
             if (sectionId === 'adm-fotos') loadAdmPhotos();
@@ -2045,8 +2007,8 @@
         // RANKING CALC
         // ═══════════════════════════════════════════
         function calcRanking() {
-            const participants = getLocal('bb_participants') || [];
-            const scores = getLocal('bb_scores') || [];
+            const participants = getParticipants() || [];
+            const scores = getScores() || [];
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             const out = participants.filter(p => p.active).map(p => {
@@ -2081,34 +2043,8 @@
             localStorage.setItem(k, JSON.stringify(v));
         }
         function initLocalData() {
-            if (!getLocal('bb_participants')) {
-                setLocal('bb_participants', [
-                    { id: 1, name: 'João Silva', area: 'Vendas', avatar: 'JS', active: true },
-                    { id: 2, name: 'Maria Santos', area: 'Vendas', avatar: 'MS', active: true },
-                    { id: 3, name: 'Pedro Costa', area: 'Vendas', avatar: 'PC', active: true },
-                    { id: 4, name: 'Ana Oliveira', area: 'Vendas', avatar: 'AO', active: true },
-                    { id: 5, name: 'Lucas Pereira', area: 'Vendas', avatar: 'LP', active: true }
-                ]);
-            }
-            if (!getLocal('bb_scores')) {
-                setLocal('bb_scores', [
-                    { id: 1, participantId: 1, date: '2026-06-01', a: 3, b: 10.2, c: 5, d: 30 },
-                    { id: 2, participantId: 1, date: '2026-06-08', a: 2, b: 12.5, c: 7, d: 38 },
-                    { id: 3, participantId: 1, date: '2026-06-15', a: 2, b: 15.5, c: 8, d: 45 },
-                    { id: 4, participantId: 2, date: '2026-06-01', a: 2, b: 18.0, c: 8, d: 25 },
-                    { id: 5, participantId: 2, date: '2026-06-08', a: 1, b: 20.5, c: 10, d: 32 },
-                    { id: 6, participantId: 2, date: '2026-06-15', a: 1, b: 22.3, c: 12, d: 38 },
-                    { id: 7, participantId: 3, date: '2026-06-01', a: 4, b: 5.0, c: 2, d: 40 },
-                    { id: 8, participantId: 3, date: '2026-06-08', a: 3, b: 7.2, c: 4, d: 48 },
-                    { id: 9, participantId: 3, date: '2026-06-15', a: 3, b: 8.7, c: 5, d: 52 },
-                    { id: 10, participantId: 4, date: '2026-06-01', a: 1, b: 15.0, c: 6, d: 30 },
-                    { id: 11, participantId: 4, date: '2026-06-08', a: 0, b: 17.2, c: 8, d: 36 },
-                    { id: 12, participantId: 4, date: '2026-06-15', a: 0, b: 18.9, c: 10, d: 41 },
-                    { id: 13, participantId: 5, date: '2026-06-01', a: 5, b: 8.0, c: 3, d: 20 },
-                    { id: 14, participantId: 5, date: '2026-06-08', a: 4, b: 10.5, c: 5, d: 28 },
-                    { id: 15, participantId: 5, date: '2026-06-15', a: 4, b: 12.4, c: 7, d: 35 }
-                ]);
-            }
+            // Participantes e pontuações vivem no Firestore (compartilhados).
+            // Aqui só garantimos os buckets locais de documentos e fotos.
             if (!getLocal('bb_docs')) setLocal('bb_docs', []);
             if (!getLocal('bb_photos')) setLocal('bb_photos', []);
         }
@@ -2116,7 +2052,7 @@
         // PARTICIPANT VIEWS
         // ═══════════════════════════════════════════
         function initParticipantSelects() {
-            const parts = getLocal('bb_participants') || [];
+            const parts = getParticipants() || [];
             const opts = parts.filter(p => p.active).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
             document.getElementById('selParticipant').innerHTML = '<option value="">Selecione seu nome...</option>' + opts;
             document.getElementById('selEvolucao').innerHTML = '<option value="">Selecione seu nome...</option>' + opts;
@@ -2128,7 +2064,7 @@
             if (!pid) { document.getElementById('dashMeuRanking').style.display = 'none'; return; }
             document.getElementById('dashMeuRanking').style.display = 'block';
             const ranking = calcRanking();
-            const idx = ranking.findIndex(p => p.id === parseInt(pid));
+            const idx = ranking.findIndex(p => p.id === pid);
             const me = idx >= 0 ? ranking[idx] : null;
             if (!me) return;
             document.getElementById('myPosition').innerHTML = `${idx + 1}<small>º</small>`;
@@ -2142,7 +2078,7 @@
             document.getElementById('progCircle').style.strokeDashoffset = circ - (pct / 100) * circ;
             document.getElementById('progNum').textContent = Math.round(pct) + '%';
             document.getElementById('myPrecedents').textContent = me.scores.c;
-            const scores = getLocal('bb_scores').filter(s => s.participantId === parseInt(pid))
+            const scores = getScores().filter(s => s.participantId === pid)
                 .sort((a, b) => new Date(a.date) - new Date(b.date));
             const trendGrid = document.getElementById('trendGrid');
             if (scores.length >= 2) {
@@ -2170,7 +2106,7 @@
                 return;
             }
             const ranking = calcRanking();
-            const me = ranking.find(p => p.id === parseInt(pid));
+            const me = ranking.find(p => p.id === pid);
             if (!me) return;
             const criteria = [
                 { key: 'a', name: 'Trocas e Avarias', icon: '🛡️', desc: 'Cuide do produto como se fosse seu. Quanto menos quebra e troca, melhor.', color: '#00a651' },
@@ -2202,7 +2138,7 @@
             const pid = sel.value;
             if (!pid) { document.getElementById('dashEvolucao').style.display = 'none'; return; }
             document.getElementById('dashEvolucao').style.display = 'block';
-            const scores = getLocal('bb_scores').filter(s => s.participantId === parseInt(pid))
+            const scores = getScores().filter(s => s.participantId === pid)
                 .sort((a, b) => new Date(a.date) - new Date(b.date));
             const totals = scores.map(s => parseFloat((s.a + s.b + s.c + s.d).toFixed(1)));
             const labels = scores.map(s => new Date(s.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
@@ -2248,7 +2184,7 @@
             }).join('');
             document.getElementById('tableGeral').innerHTML = ranking.map((p, i) => {
                 const rc = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-n';
-                const isMe = myPid && p.id === parseInt(myPid);
+                const isMe = myPid && p.id === myPid;
                 return `
                     <tr style="${isMe ? 'background:#fff8e1' : ''}">
                         <td><div class="rank-badge ${rc}">${i + 1}</div></td>
@@ -2300,7 +2236,7 @@
                         <td><div style="font-weight:700;color:var(--orange)">${p.scores.c}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill c" style="width:${p.scores.c}%"></div></div></td>
                         <td><div style="font-weight:700">${p.scores.d}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill d" style="width:${p.scores.d}%"></div></div></td>
                         <td><strong style="color:var(--green);font-size:1.05rem">${p.scores.total}</strong></td>
-                        <td><button class="header-btn" style="color:var(--green);background:var(--green-light)" onclick="showParticipantModal(${p.id})"><i class="fas fa-eye"></i></button></td>
+                        <td><button class="header-btn" style="color:var(--green);background:var(--green-light)" onclick="showParticipantModal('${p.id}')"><i class="fas fa-eye"></i></button></td>
                     </tr>
                 `;
             }).join('');
@@ -2313,34 +2249,47 @@
         }
         window.filterAdmRanking = filterAdmRanking;
         function initRegistrar() {
-            const parts = getLocal('bb_participants') || [];
+            const parts = getParticipants() || [];
             document.getElementById('scoreParticipant').innerHTML = '<option value="">Selecione...</option>' +
                 parts.filter(p => p.active).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
             document.getElementById('scoreDate').valueAsDate = new Date();
             loadAdminHistory();
         }
         window.initRegistrar = initRegistrar;
-        function saveScore(e) {
+        async function saveScore(e) {
             e.preventDefault();
-            const pid = parseInt(document.getElementById('scoreParticipant').value);
+            const pid = document.getElementById('scoreParticipant').value;
             const date = document.getElementById('scoreDate').value;
             const a = parseInt(document.getElementById('scoreA').value) || 0;
             const b = parseFloat(document.getElementById('scoreB').value) || 0;
             const c = parseInt(document.getElementById('scoreC').value) || 0;
             const d = parseInt(document.getElementById('scoreD').value) || 0;
             const notes = document.getElementById('scoreNotes').value;
-            const scores = getLocal('bb_scores') || [];
-            scores.push({ id: Date.now(), participantId: pid, date, a, b, c, d, notes });
-            setLocal('bb_scores', scores);
-            toast('Registrado!', 'Pontuação salva com sucesso.', 'success');
-            e.target.reset();
-            document.getElementById('scoreDate').valueAsDate = new Date();
-            loadAdminHistory();
+            if (!pid) { toast('Atenção', 'Selecione um participante.', 'warning'); return; }
+            const btn = e.target.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; }
+            try {
+                await authReady;
+                await addDoc(collection(db, 'pontuacoes'), {
+                    participantId: pid, date, a, b, c, d, notes,
+                    criadoEm: serverTimestamp()
+                });
+                await refreshScores();
+                toast('Registrado!', 'Pontuação salva com sucesso.', 'success');
+                e.target.reset();
+                document.getElementById('scoreDate').valueAsDate = new Date();
+                loadAdminHistory();
+            } catch (err) {
+                console.error(err);
+                toast('Erro', 'Não foi possível salvar a pontuação.', 'error');
+            } finally {
+                if (btn) { btn.disabled = false; }
+            }
         }
         window.saveScore = saveScore;
         function loadAdminHistory() {
-            const scores = getLocal('bb_scores').sort((a, b) => b.id - a.id).slice(0, 10);
-            const parts = getLocal('bb_participants') || [];
+            const scores = getScores().slice().sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
+            const parts = getParticipants() || [];
             const container = document.getElementById('adminHistory');
             if (scores.length === 0) {
                 container.innerHTML = '<div class="empty"><i class="fas fa-clipboard"></i><h3>Nenhum registro</h3></div>';
@@ -2360,52 +2309,158 @@
                 `;
             }).join('');
         }
+        function statusLabel(p) {
+            if (p.status === 'pendente') return '<span style="color:var(--orange);font-weight:700">Pendente</span>';
+            if (p.status === 'recusado') return '<span style="color:var(--red);font-weight:700">Recusado</span>';
+            return p.active ? 'Ativo' : 'Inativo';
+        }
         function loadAdmParticipants() {
-            const parts = getLocal('bb_participants') || [];
-            document.getElementById('adminParticipants').innerHTML = parts.map(p => `
+            const parts = getParticipants().filter(p => p.status === 'aprovado' || p.status === 'recusado');
+            const container = document.getElementById('adminParticipants');
+            if (parts.length === 0) {
+                container.innerHTML = '<div class="empty"><i class="fas fa-users"></i><h3>Nenhum participante</h3><p>Adicione manualmente ou aprove uma solicitação.</p></div>';
+                return;
+            }
+            container.innerHTML = parts.map(p => `
                 <div class="doc-row">
                     <div class="p-avatar" style="width:44px;height:44px;font-size:1rem">${p.avatar}</div>
                     <div class="doc-row-info">
                         <h4>${p.name}</h4>
-                        <p>${p.area} • ${p.active ? 'Ativo' : 'Inativo'}</p>
+                        <p>${p.celular ? p.celular + ' • ' : ''}${p.rota || 'Sem rota'} • ${statusLabel(p)}</p>
                     </div>
                     <div class="doc-row-actions">
-                        <button onclick="toggleParticipant(${p.id})" title="${p.active ? 'Desativar' : 'Ativar'}"><i class="fas fa-${p.active ? 'toggle-on' : 'toggle-off'}"></i></button>
-                        <button onclick="deleteParticipant(${p.id})" style="color:var(--red)"><i class="fas fa-trash"></i></button>
+                        <button onclick="editParticipant('${p.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button onclick="toggleParticipant('${p.id}')" title="${p.active ? 'Desativar' : 'Ativar'}"><i class="fas fa-${p.active ? 'toggle-on' : 'toggle-off'}"></i></button>
+                        <button onclick="deleteParticipant('${p.id}')" style="color:var(--red)"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             `).join('');
         }
         window.loadAdmParticipants = loadAdmParticipants;
-        function addParticipant() {
+        async function addParticipant() {
             const name = prompt('Nome do participante:');
             if (!name) return;
-            const area = prompt('Área:', 'Vendas');
-            const parts = getLocal('bb_participants') || [];
-            const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-            parts.push({ id: Date.now(), name, area: area || 'Vendas', avatar: initials, active: true });
-            setLocal('bb_participants', parts);
-            loadAdmParticipants();
-            toast('Adicionado!', `${name} entrou no desafio.`, 'success');
+            const celular = soDigitos(prompt('Celular (com DDD):', '') || '');
+            const rota = prompt('Rota:', '') || '';
+            try {
+                await authReady;
+                await addDoc(collection(db, 'participantes'), {
+                    nome: name.trim(),
+                    celular: celular,
+                    rota: rota.trim(),
+                    ativo: true,
+                    status: 'aprovado',
+                    criadoEm: serverTimestamp()
+                });
+                await refreshAll();
+                loadAdmParticipants();
+                toast('Adicionado!', `${name} entrou no desafio.`, 'success');
+            } catch (err) {
+                console.error(err);
+                toast('Erro', 'Não foi possível adicionar.', 'error');
+            }
         }
         window.addParticipant = addParticipant;
-        function toggleParticipant(id) {
-            const parts = getLocal('bb_participants') || [];
-            const p = parts.find(x => x.id === id);
-            if (p) p.active = !p.active;
-            setLocal('bb_participants', parts);
-            loadAdmParticipants();
+        async function editParticipant(id) {
+            const p = getParticipants().find(x => x.id === id);
+            if (!p) return;
+            const nome = prompt('Nome:', p.name);
+            if (nome === null) return;
+            const celular = soDigitos(prompt('Celular (com DDD):', p.celular) || '');
+            const rota = prompt('Rota:', p.rota) || '';
+            try {
+                await updateDoc(doc(db, 'participantes', id), {
+                    nome: nome.trim() || p.name,
+                    celular: celular,
+                    rota: rota.trim()
+                });
+                await refreshAll();
+                loadAdmParticipants();
+                toast('Atualizado!', 'Dados salvos.', 'success');
+            } catch (err) {
+                console.error(err);
+                toast('Erro', 'Não foi possível atualizar.', 'error');
+            }
+        }
+        window.editParticipant = editParticipant;
+        async function toggleParticipant(id) {
+            const p = getParticipants().find(x => x.id === id);
+            if (!p) return;
+            try {
+                await updateDoc(doc(db, 'participantes', id), { ativo: !p.active });
+                await refreshAll();
+                loadAdmParticipants();
+            } catch (err) {
+                console.error(err);
+                toast('Erro', 'Não foi possível alterar.', 'error');
+            }
         }
         window.toggleParticipant = toggleParticipant;
-        function deleteParticipant(id) {
-            if (!confirm('Excluir este participante?')) return;
-            const parts = getLocal('bb_participants').filter(p => p.id !== id);
-            setLocal('bb_participants', parts);
-            loadAdmParticipants();
+        async function deleteParticipant(id) {
+            if (!confirm('Excluir este participante? As pontuações dele continuam no histórico.')) return;
+            try {
+                await fbDeleteDoc(doc(db, 'participantes', id));
+                await refreshAll();
+                loadAdmParticipants();
+                toast('Removido', 'Participante excluído.', 'info');
+            } catch (err) {
+                console.error(err);
+                toast('Erro', 'Não foi possível excluir.', 'error');
+            }
         }
         window.deleteParticipant = deleteParticipant;
+        // ═══════════════════════════════════════════
+        // ADMIN: SOLICITAÇÕES PENDENTES
+        // ═══════════════════════════════════════════
+        function loadAdmPending() {
+            const pend = getParticipants().filter(p => p.status === 'pendente');
+            const container = document.getElementById('adminPending');
+            if (pend.length === 0) {
+                container.innerHTML = '<div class="empty"><i class="fas fa-check-circle"></i><h3>Nenhuma solicitação</h3><p>Tudo em dia!</p></div>';
+                return;
+            }
+            container.innerHTML = pend.map(p => `
+                <div class="doc-row">
+                    <div class="p-avatar" style="width:44px;height:44px;font-size:1rem">${p.avatar}</div>
+                    <div class="doc-row-info">
+                        <h4>${p.name}</h4>
+                        <p>${p.celular || 'Sem celular'}</p>
+                    </div>
+                    <div class="doc-row-actions">
+                        <button onclick="aprovarSolicitacao('${p.id}')" title="Aprovar" style="color:var(--green);background:var(--green-light)"><i class="fas fa-check"></i></button>
+                        <button onclick="recusarSolicitacao('${p.id}')" title="Recusar" style="color:var(--red)"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        window.loadAdmPending = loadAdmPending;
+        async function aprovarSolicitacao(id) {
+            try {
+                await updateDoc(doc(db, 'participantes', id), { status: 'aprovado', ativo: true });
+                await refreshAll();
+                loadAdmPending();
+                toast('Aprovado!', 'O vendedor já pode acessar o ranking.', 'success');
+            } catch (err) {
+                console.error(err);
+                toast('Erro', 'Não foi possível aprovar.', 'error');
+            }
+        }
+        window.aprovarSolicitacao = aprovarSolicitacao;
+        async function recusarSolicitacao(id) {
+            if (!confirm('Recusar esta solicitação de acesso?')) return;
+            try {
+                await updateDoc(doc(db, 'participantes', id), { status: 'recusado', ativo: false });
+                await refreshAll();
+                loadAdmPending();
+                toast('Recusado', 'Solicitação recusada.', 'info');
+            } catch (err) {
+                console.error(err);
+                toast('Erro', 'Não foi possível recusar.', 'error');
+            }
+        }
+        window.recusarSolicitacao = recusarSolicitacao;
         function initAdminEvo() {
-            const parts = getLocal('bb_participants') || [];
+            const parts = getParticipants() || [];
             document.getElementById('selAdminEvo').innerHTML = '<option value="all">Todos os participantes</option>' +
                 parts.filter(p => p.active).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
             renderAdminEvo();
@@ -2413,7 +2468,7 @@
         window.initAdminEvo = initAdminEvo;
         function renderAdminEvo() {
             const pid = document.getElementById('selAdminEvo').value;
-            const scores = getLocal('bb_scores') || [];
+            const scores = getScores() || [];
             const colors = ['#00a651', '#ffc72c', '#ff9800', '#2196f3', '#9c27b0'];
             let series = [];
             if (pid === 'all') {
@@ -2427,8 +2482,8 @@
                     };
                 });
             } else {
-                const ps = scores.filter(s => s.participantId === parseInt(pid)).sort((a, b) => new Date(a.date) - new Date(b.date));
-                const p = getLocal('bb_participants').find(x => x.id === parseInt(pid));
+                const ps = scores.filter(s => s.participantId === pid).sort((a, b) => new Date(a.date) - new Date(b.date));
+                const p = getParticipants().find(x => x.id === pid);
                 series = [{
                     name: p ? p.name : 'Participante',
                     values: ps.map(s => parseFloat((s.a + s.b + s.c + s.d).toFixed(1))),
@@ -2442,7 +2497,7 @@
                     latest[s.participantId] = s;
                 }
             });
-            const relevant = pid === 'all' ? Object.values(latest) : [latest[parseInt(pid)]].filter(Boolean);
+            const relevant = pid === 'all' ? Object.values(latest) : [latest[pid]].filter(Boolean);
             if (relevant.length > 0) {
                 renderBarChart('adminEvoBar', [
                     { label: 'A', value: Math.round(relevant.reduce((s, x) => s + x.a, 0) / relevant.length), color: '#00a651' },
@@ -2607,11 +2662,11 @@
         // MODAL
         // ═══════════════════════════════════════════
         function showParticipantModal(id) {
-            const parts = getLocal('bb_participants') || [];
-            const scores = getLocal('bb_scores') || [];
+            const parts = getParticipants() || [];
+            const scores = getScores() || [];
             const p = parts.find(x => x.id === id);
             if (!p) return;
-            const ps = scores.filter(s => s.participantId === id).sort((a, b) => b.id - a.id);
+            const ps = scores.filter(s => s.participantId === id).sort((a, b) => new Date(b.date) - new Date(a.date));
             const latest = ps[0] || { a: 0, b: 0, c: 0, d: 0 };
             openModal(p.name, `
                 <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
