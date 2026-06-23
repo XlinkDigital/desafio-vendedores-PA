@@ -1544,7 +1544,33 @@
             ═══════════════════════════════════════════ -->
             <section class="section" id="adm-registrar">
                 <div class="card">
-                    <div class="card-title"><i class="fas fa-plus-circle"></i> Registrar Pontuação</div>
+                    <div class="card-title"><i class="fas fa-file-import"></i> Importação em lote — relatório único (todos os vendedores)</div>
+                    <p style="font-size:0.84rem; color:var(--gray-dark); margin-bottom:14px;">
+                        Envie o <strong>relatório único em HTML</strong> (com todos os vendedores). O sistema separa por vendedor automaticamente, associa cada um ao seu cadastro (criando quem ainda não existe) e mostra um resumo para você conferir <strong>antes de confirmar</strong>.
+                    </p>
+                    <div class="form-group" style="max-width:260px; margin-bottom:14px;">
+                        <label>Período (data de referência)</label>
+                        <input type="date" id="batchDate" style="width:100%; padding:12px; border:2px solid #e8e8e8; border-radius:12px; font-family:'Montserrat';">
+                    </div>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-bottom:16px;">
+                        <label class="xlsx-import">
+                            <i class="fas fa-file-code"></i>
+                            <span><strong>Relatório de Vendas (.html)</strong><br><small id="batchVendasName" style="color:var(--gray-dark)">Clique para enviar</small></span>
+                            <input type="file" accept=".html,.htm,text/html" onchange="importarVendasHTML(this)" style="display:none">
+                        </label>
+                        <label class="xlsx-import">
+                            <i class="fas fa-file-code"></i>
+                            <span><strong>Relatório de Avarias (.html)</strong><br><small id="batchAvariasName" style="color:var(--gray-dark)">Clique para enviar</small></span>
+                            <input type="file" accept=".html,.htm,text/html" onchange="importarAvariasHTML(this)" style="display:none">
+                        </label>
+                    </div>
+                    <div id="batchPreview"></div>
+                    <button type="button" class="auth-btn" id="batchConfirmBtn" onclick="confirmarImportacaoLote()" style="margin-top:14px; display:none;">
+                        <i class="fas fa-cloud-upload-alt"></i> Confirmar importação
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-plus-circle"></i> Registrar Pontuação (individual)</div>
                     <form id="formScore" onsubmit="saveScore(event)">
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 14px;">
                             <div class="form-group">
@@ -2368,7 +2394,10 @@
             document.getElementById('scoreParticipant').innerHTML = '<option value="">Selecione...</option>' +
                 parts.filter(p => p.active).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
             document.getElementById('scoreDate').valueAsDate = new Date();
+            const bd = document.getElementById('batchDate');
+            if (bd && !bd.value) bd.valueAsDate = new Date();
             resetImportUI();
+            renderBatchPreview();
             preencherUltimoPrecedente();
             calcVolumePreview();
             loadAdminHistory();
@@ -2502,6 +2531,227 @@
             if (v) v.textContent = 'Clique para enviar (.xlsx)';
             if (a) a.textContent = 'Clique para enviar (.xlsx)';
         }
+        // ── IMPORTAÇÃO EM LOTE — RELATÓRIO ÚNICO HTML (todos os vendedores) ──
+        // Normaliza nome para comparação: sem acento, sem espaços duplicados, MAIÚSCULO.
+        function normNome(s) {
+            return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .trim().replace(/\s+/g, ' ').toUpperCase();
+        }
+        // Staging em memória: chave = nome normalizado → dados acumulados (vendas + avarias).
+        const batchStaging = {};
+        function novoStaging(nome) {
+            return { nome, rota: '', faturamento: '', volumeVendido: null, qtdClientes: null, volumeAvarias: null };
+        }
+        function limparBatch() {
+            Object.keys(batchStaging).forEach(k => delete batchStaging[k]);
+            const v = document.getElementById('batchVendasName');
+            const a = document.getElementById('batchAvariasName');
+            if (v) v.textContent = 'Clique para enviar';
+            if (a) a.textContent = 'Clique para enviar';
+            document.querySelectorAll('#adm-registrar .xlsx-import.ok').forEach(el => {
+                if (el.querySelector('input[onchange*="HTML"]')) el.classList.remove('ok');
+            });
+            renderBatchPreview();
+        }
+        // Lê o HTML e devolve [{ nome, rota, faturamento, volume, clientes }] a partir da
+        // tabela "Ranking de vendedores" (colunas Vendedor / Loja / Faturamento / Volume / Clientes).
+        function parseRelatorioVendedoresHTML(text) {
+            const docHtml = new DOMParser().parseFromString(text, 'text/html');
+            const tables = Array.from(docHtml.querySelectorAll('table'));
+            for (const table of tables) {
+                const trs = Array.from(table.querySelectorAll('tr'));
+                if (!trs.length) continue;
+                let hIdx = -1, cols = null;
+                for (let i = 0; i < trs.length; i++) {
+                    const cells = Array.from(trs[i].querySelectorAll('th,td')).map(c => normNome(c.textContent));
+                    const vend = cells.findIndex(c => c.includes('VENDEDOR'));
+                    const vol = cells.findIndex(c => c.includes('VOLUME'));
+                    const cli = cells.findIndex(c => c.includes('CLIENTE'));
+                    if (vend !== -1 && vol !== -1 && cli !== -1) {
+                        hIdx = i;
+                        cols = {
+                            vend, vol, cli,
+                            loja: cells.findIndex(c => c.includes('LOJA')),
+                            fat: cells.findIndex(c => c.includes('FATURAMENTO'))
+                        };
+                        break;
+                    }
+                }
+                if (hIdx === -1) continue;
+                const out = [];
+                for (let i = hIdx + 1; i < trs.length; i++) {
+                    const cells = Array.from(trs[i].querySelectorAll('th,td'));
+                    if (!cells.length) continue;
+                    const nome = (cells[cols.vend]?.textContent || '').trim();
+                    const nomeN = normNome(nome);
+                    if (!nome || nomeN === 'VENDEDOR' || nomeN.startsWith('TOTAL')) continue;
+                    out.push({
+                        nome,
+                        rota: cols.loja !== -1 ? (cells[cols.loja]?.textContent || '').trim() : '',
+                        faturamento: cols.fat !== -1 ? (cells[cols.fat]?.textContent || '').trim() : '',
+                        volume: parseNum(cells[cols.vol]?.textContent || ''),
+                        clientes: Math.round(parseNum(cells[cols.cli]?.textContent || ''))
+                    });
+                }
+                if (out.length) return out;
+            }
+            throw new Error('Tabela com colunas "Vendedor", "Volume" e "Clientes" não encontrada no HTML.');
+        }
+        async function importarVendasHTML(input) {
+            const file = input.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const rows = parseRelatorioVendedoresHTML(text);
+                rows.forEach(r => {
+                    const e = batchStaging[normNome(r.nome)] || (batchStaging[normNome(r.nome)] = novoStaging(r.nome));
+                    e.nome = r.nome;
+                    if (r.rota) e.rota = r.rota;
+                    if (r.faturamento) e.faturamento = r.faturamento;
+                    e.volumeVendido = r.volume;
+                    e.qtdClientes = r.clientes;
+                });
+                document.getElementById('batchVendasName').textContent = `${file.name} ✓ (${rows.length})`;
+                input.closest('.xlsx-import').classList.add('ok');
+                renderBatchPreview();
+                toast('Vendas (HTML) lido!', `${rows.length} vendedor(es) encontrado(s). Confira antes de confirmar.`, 'success');
+            } catch (err) {
+                console.error(err);
+                input.value = '';
+                toast('Erro ao ler Vendas (HTML)', err.message || 'Confira o arquivo.', 'error');
+            }
+        }
+        window.importarVendasHTML = importarVendasHTML;
+        async function importarAvariasHTML(input) {
+            const file = input.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const rows = parseRelatorioVendedoresHTML(text);
+                rows.forEach(r => {
+                    const e = batchStaging[normNome(r.nome)] || (batchStaging[normNome(r.nome)] = novoStaging(r.nome));
+                    e.nome = e.nome || r.nome;
+                    if (!e.rota && r.rota) e.rota = r.rota;
+                    e.volumeAvarias = r.volume;
+                });
+                document.getElementById('batchAvariasName').textContent = `${file.name} ✓ (${rows.length})`;
+                input.closest('.xlsx-import').classList.add('ok');
+                renderBatchPreview();
+                toast('Avarias (HTML) lido!', `${rows.length} vendedor(es) encontrado(s). Confira antes de confirmar.`, 'success');
+            } catch (err) {
+                console.error(err);
+                input.value = '';
+                toast('Erro ao ler Avarias (HTML)', err.message || 'Confira o arquivo.', 'error');
+            }
+        }
+        window.importarAvariasHTML = importarAvariasHTML;
+        function renderBatchPreview() {
+            const wrap = document.getElementById('batchPreview');
+            const btn = document.getElementById('batchConfirmBtn');
+            if (!wrap) return;
+            const entries = Object.values(batchStaging);
+            if (!entries.length) {
+                wrap.innerHTML = '';
+                if (btn) btn.style.display = 'none';
+                return;
+            }
+            const parts = getParticipants() || [];
+            const byName = {};
+            parts.forEach(p => { byName[normNome(p.name)] = p; });
+            const rows = entries.map(e => {
+                const existe = byName[normNome(e.nome)];
+                const pct = (e.volumeVendido && e.volumeAvarias != null) ? (e.volumeAvarias / e.volumeVendido * 100) : null;
+                const volCli = (e.volumeVendido && e.qtdClientes) ? e.volumeVendido / e.qtdClientes : null;
+                return `<tr>
+                    <td style="font-weight:700">${e.nome}</td>
+                    <td>${e.rota || '—'}</td>
+                    <td>${e.volumeVendido != null ? fmtKg(e.volumeVendido) : '—'}</td>
+                    <td>${e.volumeAvarias != null ? fmtKg(e.volumeAvarias) : '—'}</td>
+                    <td>${pct != null ? pct.toFixed(1).replace('.', ',') + '%' : '—'}</td>
+                    <td>${e.qtdClientes != null ? e.qtdClientes : '—'}</td>
+                    <td>${volCli != null ? fmtKg(volCli) : '—'}</td>
+                    <td>${existe ? '<span style="color:var(--green);font-weight:700">Cadastrado</span>' : '<span style="color:var(--orange);font-weight:700">Novo</span>'}</td>
+                </tr>`;
+            }).join('');
+            wrap.innerHTML = `
+                <div style="overflow-x:auto;">
+                    <table class="ranking-table">
+                        <thead><tr>
+                            <th>Vendedor</th><th>Rota</th><th>Vendido</th><th>Avarias</th><th>Avaria %</th><th>Clientes</th><th>Vol/cliente</th><th>Cadastro</th>
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+                <p style="font-size:0.8rem; color:var(--gray-dark); margin-top:10px;">${entries.length} vendedor(es) no relatório. Confira os valores e clique em <strong>Confirmar importação</strong> para salvar no período <strong>${document.getElementById('batchDate').value || '(defina a data)'}</strong>.</p>
+            `;
+            if (btn) btn.style.display = 'inline-flex';
+        }
+        window.renderBatchPreview = renderBatchPreview;
+        async function confirmarImportacaoLote() {
+            const date = document.getElementById('batchDate').value;
+            const entries = Object.values(batchStaging);
+            if (!date) { toast('Atenção', 'Defina a data de referência do período.', 'warning'); return; }
+            if (!entries.length) { toast('Atenção', 'Envie ao menos um relatório (.html) antes de confirmar.', 'warning'); return; }
+            const btn = document.getElementById('batchConfirmBtn');
+            btn.disabled = true;
+            const labelOrig = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importando...';
+            try {
+                await authReady;
+                await refreshParticipants();
+                const byName = {};
+                DB.participants.forEach(p => { byName[normNome(p.name)] = p; });
+                let lancados = 0, atualizados = 0, criados = 0;
+                for (const e of entries) {
+                    const key = normNome(e.nome);
+                    let part = byName[key];
+                    if (!part) {
+                        const ref = await addDoc(collection(db, 'participantes'), {
+                            nome: e.nome, celular: '', rota: e.rota || '',
+                            ativo: true, status: 'aprovado', criadoEm: serverTimestamp()
+                        });
+                        part = { id: ref.id, name: e.nome };
+                        byName[key] = part;
+                        criados++;
+                    } else if (e.rota) {
+                        await updateDoc(doc(db, 'participantes', part.id), { rota: e.rota });
+                    }
+                    // Monta só os campos que vieram nos relatórios (não zera o que não veio).
+                    const payload = {};
+                    if (e.volumeVendido != null) payload.volumeVendido = e.volumeVendido;
+                    if (e.qtdClientes != null) payload.qtdClientes = e.qtdClientes;
+                    if (e.volumeAvarias != null) payload.volumeAvarias = e.volumeAvarias;
+                    // Já existe lançamento do vendedor nesse período? Atualiza; senão cria. (C e D intactos.)
+                    const existentes = await getDocs(query(collection(db, 'pontuacoes'),
+                        where('participantId', '==', part.id), where('date', '==', date)));
+                    if (!existentes.empty) {
+                        await updateDoc(doc(db, 'pontuacoes', existentes.docs[0].id), payload);
+                        atualizados++;
+                    } else {
+                        await addDoc(collection(db, 'pontuacoes'), {
+                            participantId: part.id, date,
+                            volumeVendido: payload.volumeVendido || 0,
+                            volumeAvarias: payload.volumeAvarias || 0,
+                            qtdClientes: payload.qtdClientes || 0,
+                            c: 0, d: 0, notes: 'Importado de relatório HTML',
+                            criadoEm: serverTimestamp()
+                        });
+                        lancados++;
+                    }
+                }
+                await refreshAll();
+                initRegistrar();
+                limparBatch();
+                toast('Importação concluída!', `${lancados} novo(s) lançamento(s) · ${atualizados} atualizado(s) · ${criados} vendedor(es) criado(s).`, 'success');
+            } catch (err) {
+                console.error(err);
+                toast('Erro na importação', 'Não foi possível concluir. Tente novamente.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = labelOrig;
+            }
+        }
+        window.confirmarImportacaoLote = confirmarImportacaoLote;
         async function saveScore(e) {
             e.preventDefault();
             const pid = document.getElementById('scoreParticipant').value;
