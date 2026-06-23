@@ -1,6 +1,6 @@
 # Desafio Vendedores — PA · Progresso
 
-Documento de retomada. Última atualização: **21/06/2026**. HEAD na sessão: `10630bb`.
+Documento de retomada. Última atualização: **23/06/2026**. HEAD na sessão: `1c64b9b`.
 
 ## O que é o projeto
 App de ranking de vendedores do cliente **Armazém das Bananas** ("Desafio Boombox").
@@ -24,9 +24,27 @@ Página única `index.html` (HTML + CSS + JS num único `<script type="module">`
 ### Dados (Firebase / Firestore — projeto "desafio-boombox")
 - `firebaseConfig` está no código. Login **Anônimo** ativado (só dá contexto pro Firestore; ninguém loga por conta).
 - Coleção **`participantes`**: `{ nome, celular, rota, ativo, status, criadoEm }` (id = docId string).
-- Coleção **`pontuacoes`**: `{ participantId, date, a, b, c, d, notes, criadoEm }`.
+- Coleção **`pontuacoes`**: `{ participantId, date, volumeVendido, volumeAvarias, qtdClientes, c, d, notes, criadoEm }`. As notas **A** e **B** NÃO são gravadas — são derivadas em `enrichScores()`/`calcRanking()`.
 - Documentos e fotos ainda ficam em **localStorage** (`bb_docs`, `bb_photos`) — não migrados.
-- `refreshAll()` recarrega participantes+pontuações do Firestore a cada troca de aba.
+- `refreshAll()` recarrega participantes+pontuações do Firestore a cada troca de aba **e chama `syncParticipantSelects()`**.
+
+### Fonte única de verdade dos seletores (importante)
+- `syncParticipantSelects()` é a **única** função que popula TODOS os dropdowns de participante a partir de `DB.participants`: `scoreParticipant` (Registrar), `selParticipant` (Meu Ranking), `selEvolucao` (Minha Evolução) e `selAdminEvo` (Evolução admin).
+- Preserva a seleção atual só se o participante ainda existir; senão volta ao placeholder.
+- É chamada dentro de `refreshAll()` → todos os selects ficam sempre sincronizados e **zeram sozinhos após um reset** (sem nome em cache).
+- `initParticipantSelects` / `initRegistrar` / `initAdminEvo` **delegam** a ela (não populam dropdown por conta própria).
+
+### Importação de relatórios
+- **HTML** (relatório único da unidade): separa por vendedor, **somente unidade Parauapebas**; cria vendedores ausentes já como `ativo:true / status:'aprovado'`. Modal resolve homônimos. Lança/atualiza `pontuacoes` por período (não zera C/D existentes).
+- **XLSX** (SheetJS via CDN): uploads de Relatório de Vendas e de Avarias; lê aba "Resumo" → volume (linha "TOTAL GERAL") e nº de clientes; preenche os 3 campos kg (editáveis antes de salvar).
+- Ao escolher o vendedor no Registrar, o campo **Precedentes (C)** é auto-preenchido com o último registro dele (editável).
+
+### Reset de teste
+- Botão "Resetar tudo (teste)" na aba Participantes (`resetarTudoTeste()`): apaga do Firestore **`pontuacoes` E `participantes`**, depois `refreshAll()` (que via `syncParticipantSelects()` zera todos os dropdowns) + re-render de Participantes/Solicitações/Histórico/Ranking.
+
+### Ranking automático
+- A aba **Ranking** (admin) e o **Ranking Geral** (vendedor) mostram TODOS os vendedores ativos automaticamente, sem exigir seleção. Empty-state amigável quando não há vendedor. Após importação, `loadAdmRanking()` é chamado para refletir na hora.
+- Seleção manual de participante só onde faz sentido: **Registrar pontuação** e telas pessoais do vendedor (Meu Ranking / O Que Cumprir / Minha Evolução).
 
 ### Critérios (`calcRanking()` + `enrichScores()`)
 Captura por período (kg + clientes): **Volume vendido (kg)**, **Volume de avarias (kg)** (perda+bonif+devol) e **Qtd. de clientes**. Pesos editáveis no topo (`PESO_A/B/C/D`, default 1).
@@ -46,11 +64,17 @@ Captura por período (kg + clientes): **Volume vendido (kg)**, **Volume de avari
 ### Visual
 - Logo da empresa (`adb.png`, transparente, otimizada 15MB→66KB / 400×161px) no **cabeçalho verde** (`.header-logo-img`, ~44px) e nas **3 telas de acesso** (`.auth-logo-img`, ~200px largura, responsiva).
 
-## Histórico desta sessão (mais recente em cima)
+## Histórico recente (mais recente em cima)
+- `1c64b9b` fix: reset limpa participantes e sincroniza; ranking automatico (fonte única `syncParticipantSelects`)
+- `6600d69` feat: apagar todos os registros / reset de teste
+- `fb47653` feat: importar HTML, somente unidade Parauapebas
+- `8be9260` feat: importar relatório único HTML e separar por vendedor
+- `5201799` feat: auto-preencher Precedentes com o último registro ao escolher vendedor
+- `a1b855c` feat: importar relatórios xlsx e calcular A/B por volume
+- `c6c8471` feat: pontuação A e B por volume/avarias/clientes em kg
+- `f73c526` docs: ONBOARDING.md com guia de setup para novos colaboradores
+- `ae8e702` docs: PROGRESSO.md com estado do projeto e próximos passos
 - `10630bb` feat: logo na tela de acesso (ajuste de tamanho ~200px)
-- `513b938` feat: logo da empresa nas telas de login/seleção de perfil
-- `05be224` perf: otimiza logo adb.png (15MB -> 66KB)
-- `76b7aa3` feat: logo da empresa no cabeçalho
 - `0a2958c` fix: filtro por critério funcional no ranking admin + remove authErrorMsg morto
 - `a69cabb` feat: Firestore compartilhado + acesso do vendedor por nome+celular com aprovação do gestor
 
@@ -59,10 +83,12 @@ Captura por período (kg + clientes): **Volume vendido (kg)**, **Volume de avari
 - [ ] Conferir/ajustar **regras do Firestore** conforme o uso real (já foram publicadas pelo dono).
 - [ ] Eventual tela de **edição de pontuação** (hoje admin só adiciona; não edita/exclui lançamento individual).
 - [ ] Definir período de avaliação real (hoje o ranking usa "últimos 30 dias" fixo).
+- [ ] Decidir o que fazer com `exemplo-relatorio-VENDAS.xlsx` / `exemplo-relatorio-AVARIAS.xlsx` (hoje **não commitados** na pasta): commitar, `.gitignore` ou remover.
 
 ## Notas técnicas para quem retomar
 - Tudo num arquivo só: `index.html`. JS é módulo ES; funções usadas em `onclick` são expostas via `window.x`.
 - Ids de participantes/pontuações são **strings** (docId do Firestore) — cuidado ao comparar (`===`, sem `parseInt`).
+- **Dropdowns de participante:** sempre passar por `syncParticipantSelects()` (fonte única). Não popular um `<select>` de participante na mão — senão volta o bug de nome em cache.
 - `signInAnonymously` precisa estar habilitado no Firebase Console (já está).
 - Checagem rápida de sintaxe do JS:
   extrair o conteúdo entre `<script type="module">` e `</script>` e rodar `node --check`.
