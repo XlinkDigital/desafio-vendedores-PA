@@ -1643,6 +1643,24 @@
                     </div>
                     <div id="adminParticipants"></div>
                 </div>
+                <div class="card" style="border:2px solid var(--red);">
+                    <div class="card-title" style="color:var(--red);"><i class="fas fa-triangle-exclamation"></i> Zona de perigo (testes)</div>
+                    <p style="font-size:0.86rem; color:var(--gray-dark); margin-bottom:16px;">
+                        Ações para limpar a base durante os testes. <strong>São permanentes e não dá pra desfazer.</strong>
+                    </p>
+                    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                        <button class="auth-btn" onclick="apagarTodosRegistros()" style="width:auto; padding:12px 22px; background:var(--orange);">
+                            <i class="fas fa-eraser"></i> Apagar todos os registros
+                        </button>
+                        <button class="auth-btn" onclick="resetarTudoTeste()" style="width:auto; padding:12px 22px; background:var(--red);">
+                            <i class="fas fa-bomb"></i> Resetar tudo (teste)
+                        </button>
+                    </div>
+                    <p style="font-size:0.78rem; color:var(--gray-dark); margin-top:14px;">
+                        <strong>Apagar todos os registros:</strong> remove só as pontuações (mantém os vendedores).<br>
+                        <strong>Resetar tudo:</strong> remove pontuações <em>e</em> vendedores — app zerado.
+                    </p>
+                </div>
             </section>
             <!-- ═══════════════════════════════════════════
                  ADMIN: SOLICITAÇÕES PENDENTES
@@ -2889,6 +2907,48 @@
             }
         }
         window.deleteParticipant = deleteParticipant;
+        // ── AÇÕES DE LIMPEZA EM MASSA (apenas admin, para testes) ──────
+        async function apagarTodosRegistros() {
+            if (!isAdminSession) return;
+            if (!confirm('Tem certeza? Isso vai apagar TODOS os registros de pontuação de forma permanente e não dá pra desfazer.')) return;
+            try {
+                await authReady;
+                const snap = await getDocs(collection(db, 'pontuacoes'));
+                await Promise.all(snap.docs.map(d => fbDeleteDoc(doc(db, 'pontuacoes', d.id))));
+                await refreshAll();
+                loadAdmParticipants();
+                loadAdminHistory();
+                toast('Registros apagados', `${snap.size} registro(s) de pontuação removido(s).`, 'info');
+            } catch (err) {
+                console.error(err);
+                toast('Erro', 'Não foi possível apagar os registros.', 'error');
+            }
+        }
+        window.apagarTodosRegistros = apagarTodosRegistros;
+        async function resetarTudoTeste() {
+            if (!isAdminSession) return;
+            if (!confirm('Tem certeza? Isso vai apagar TUDO (registros E participantes) de forma permanente e não dá pra desfazer.')) return;
+            try {
+                await authReady;
+                const [snapScores, snapParts] = await Promise.all([
+                    getDocs(collection(db, 'pontuacoes')),
+                    getDocs(collection(db, 'participantes'))
+                ]);
+                await Promise.all([
+                    ...snapScores.docs.map(d => fbDeleteDoc(doc(db, 'pontuacoes', d.id))),
+                    ...snapParts.docs.map(d => fbDeleteDoc(doc(db, 'participantes', d.id)))
+                ]);
+                await refreshAll();
+                loadAdmParticipants();
+                loadAdmPending();
+                loadAdminHistory();
+                toast('App zerado', `${snapScores.size} registro(s) e ${snapParts.size} participante(s) removidos.`, 'info');
+            } catch (err) {
+                console.error(err);
+                toast('Erro', 'Não foi possível resetar.', 'error');
+            }
+        }
+        window.resetarTudoTeste = resetarTudoTeste;
         // ═══════════════════════════════════════════
         // ADMIN: SOLICITAÇÕES PENDENTES
         // ═══════════════════════════════════════════
