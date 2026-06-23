@@ -865,7 +865,7 @@
             text-align: center;
             font-size: 1rem;
         }
-        /* IMPORT XLSX */
+        /* IMPORT (botão de upload de relatório HTML) */
         .xlsx-import {
             display: flex;
             align-items: center;
@@ -1544,9 +1544,9 @@
             ═══════════════════════════════════════════ -->
             <section class="section" id="adm-registrar">
                 <div class="card">
-                    <div class="card-title"><i class="fas fa-file-import"></i> Importação em lote — relatório único (todos os vendedores)</div>
+                    <div class="card-title"><i class="fas fa-file-import"></i> Importação em lote — relatório único HTML</div>
                     <p style="font-size:0.84rem; color:var(--gray-dark); margin-bottom:14px;">
-                        Envie o <strong>relatório único em HTML</strong> (com todos os vendedores). O sistema separa por vendedor automaticamente, associa cada um ao seu cadastro (criando quem ainda não existe) e mostra um resumo para você conferir <strong>antes de confirmar</strong>.
+                        Envie o <strong>relatório único em HTML</strong> (com todos os vendedores). O sistema importa <strong>somente a unidade Parauapebas (PA matriz)</strong> — vendedores de outras unidades são ignorados —, separa por vendedor, associa cada um ao seu cadastro (criando quem ainda não existe) e mostra um resumo para você conferir <strong>antes de confirmar</strong>.
                     </p>
                     <div class="form-group" style="max-width:260px; margin-bottom:14px;">
                         <label>Período (data de referência)</label>
@@ -1584,19 +1584,7 @@
                         </div>
                         <div class="input-group a" style="margin-bottom:14px;">
                             <label><i class="fas fa-weight-hanging"></i> Volume do período (kg) — base dos critérios A e B</label>
-                            <p style="font-size:0.76rem; color:var(--gray-dark); margin:4px 0 10px;">Importe os relatórios <strong>.xlsx</strong> (aba "Resumo") para preencher automaticamente — você ainda pode ajustar os valores antes de salvar.</p>
-                            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-bottom:12px;">
-                                <label class="xlsx-import">
-                                    <i class="fas fa-file-excel"></i>
-                                    <span><strong>Relatório de Vendas</strong><br><small id="vendasFileName" style="color:var(--gray-dark)">Clique para enviar (.xlsx)</small></span>
-                                    <input type="file" accept=".xlsx,.xls" onchange="importarVendas(this)" style="display:none">
-                                </label>
-                                <label class="xlsx-import">
-                                    <i class="fas fa-file-excel"></i>
-                                    <span><strong>Relatório de Avarias</strong><br><small id="avariasFileName" style="color:var(--gray-dark)">Clique para enviar (.xlsx)</small></span>
-                                    <input type="file" accept=".xlsx,.xls" onchange="importarAvarias(this)" style="display:none">
-                                </label>
-                            </div>
+                            <p style="font-size:0.76rem; color:var(--gray-dark); margin:4px 0 10px;">Preencha manualmente para ajustar um vendedor específico, ou use a <strong>importação em lote (HTML)</strong> acima para todos de uma vez.</p>
                             <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:4px;">
                                 <div>
                                     <label style="font-size:0.72rem; color:var(--gray-dark); font-weight:600; display:block; margin-bottom:4px;">Volume vendido (kg)</label>
@@ -1734,8 +1722,6 @@
             <div class="modal-body" id="modalBody"></div>
         </div>
     </div>
-    <!-- SheetJS (leitura de .xlsx no navegador) -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <!-- FIREBASE SDK (Modular via CDN) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -2396,7 +2382,6 @@
             document.getElementById('scoreDate').valueAsDate = new Date();
             const bd = document.getElementById('batchDate');
             if (bd && !bd.value) bd.valueAsDate = new Date();
-            resetImportUI();
             renderBatchPreview();
             preencherUltimoPrecedente();
             calcVolumePreview();
@@ -2437,7 +2422,6 @@
             document.getElementById('previewVolCliente').textContent = fmtKg(volCliente);
         }
         window.calcVolumePreview = calcVolumePreview;
-        // ── IMPORTAÇÃO DE RELATÓRIOS .XLSX (SheetJS) ──────────────────
         // Converte texto/número pt-BR ("1.234,5 kg") em número.
         function parseNum(v) {
             if (typeof v === 'number') return v;
@@ -2452,86 +2436,7 @@
             }
             return parseFloat(s) || 0;
         }
-        // Lê a aba "Resumo" (Cliente | Quantidade (kg)) e devolve { total, clientes }.
-        // total = valor da linha "TOTAL GERAL"; clientes = nº de linhas de cliente
-        // (exclui cabeçalho, TOTAL GERAL e linhas com cliente vazio).
-        function parseResumo(arrayBuffer) {
-            if (typeof XLSX === 'undefined') throw new Error('Biblioteca de leitura (.xlsx) não carregou. Verifique a conexão.');
-            const wb = XLSX.read(arrayBuffer, { type: 'array' });
-            // procura a aba "Resumo" sem diferenciar maiúsc/minúsc
-            const nomeAba = wb.SheetNames.find(n => n.trim().toLowerCase() === 'resumo');
-            if (!nomeAba) throw new Error('Aba "Resumo" não encontrada na planilha.');
-            const rows = XLSX.utils.sheet_to_json(wb.Sheets[nomeAba], { header: 1, defval: '' });
-            // localiza a linha de cabeçalho e as colunas Cliente / Quantidade
-            let hIdx = -1, colCli = -1, colQtd = -1;
-            for (let i = 0; i < rows.length; i++) {
-                const cells = rows[i].map(c => String(c).trim().toLowerCase());
-                const ci = cells.findIndex(c => c === 'cliente');
-                const qi = cells.findIndex(c => c.includes('quantidade'));
-                if (ci !== -1 && qi !== -1) { hIdx = i; colCli = ci; colQtd = qi; break; }
-            }
-            if (hIdx === -1) throw new Error('Cabeçalho "Cliente" / "Quantidade (kg)" não encontrado na aba "Resumo".');
-            let total = null, clientes = 0;
-            for (let i = hIdx + 1; i < rows.length; i++) {
-                const nome = String(rows[i][colCli] ?? '').trim();
-                if (!nome) continue; // linha de cliente vazio
-                if (nome.toUpperCase().replace(/\s+/g, ' ') === 'TOTAL GERAL') {
-                    total = parseNum(rows[i][colQtd]);
-                    continue;
-                }
-                clientes++;
-            }
-            if (total === null) throw new Error('Linha "TOTAL GERAL" não encontrada na aba "Resumo".');
-            return { total, clientes };
-        }
-        async function lerResumoDoArquivo(file) {
-            const buf = await file.arrayBuffer();
-            return parseResumo(buf);
-        }
-        async function importarVendas(input) {
-            const file = input.files[0];
-            if (!file) return;
-            try {
-                const { total, clientes } = await lerResumoDoArquivo(file);
-                document.getElementById('scoreVol').value = total;
-                document.getElementById('scoreClientes').value = clientes;
-                document.getElementById('vendasFileName').textContent = `${file.name} ✓`;
-                input.closest('.xlsx-import').classList.add('ok');
-                calcVolumePreview();
-                toast('Vendas importado!', `Volume vendido ${fmtKg(total)} · ${clientes} cliente(s). Confira antes de salvar.`, 'success');
-            } catch (err) {
-                console.error(err);
-                input.value = '';
-                toast('Erro ao ler Vendas', err.message || 'Confira a aba "Resumo" do arquivo.', 'error');
-            }
-        }
-        window.importarVendas = importarVendas;
-        async function importarAvarias(input) {
-            const file = input.files[0];
-            if (!file) return;
-            try {
-                const { total } = await lerResumoDoArquivo(file);
-                document.getElementById('scoreAvarias').value = total;
-                document.getElementById('avariasFileName').textContent = `${file.name} ✓`;
-                input.closest('.xlsx-import').classList.add('ok');
-                calcVolumePreview();
-                toast('Avarias importado!', `Volume de avarias ${fmtKg(total)}. Confira antes de salvar.`, 'success');
-            } catch (err) {
-                console.error(err);
-                input.value = '';
-                toast('Erro ao ler Avarias', err.message || 'Confira a aba "Resumo" do arquivo.', 'error');
-            }
-        }
-        window.importarAvarias = importarAvarias;
-        // Limpa os rótulos/estado dos botões de import
-        function resetImportUI() {
-            document.querySelectorAll('.xlsx-import').forEach(el => el.classList.remove('ok'));
-            const v = document.getElementById('vendasFileName');
-            const a = document.getElementById('avariasFileName');
-            if (v) v.textContent = 'Clique para enviar (.xlsx)';
-            if (a) a.textContent = 'Clique para enviar (.xlsx)';
-        }
-        // ── IMPORTAÇÃO EM LOTE — RELATÓRIO ÚNICO HTML (todos os vendedores) ──
+        // ── IMPORTAÇÃO EM LOTE — RELATÓRIO ÚNICO HTML (somente unidade Parauapebas) ──
         // Normaliza nome para comparação: sem acento, sem espaços duplicados, MAIÚSCULO.
         function normNome(s) {
             return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -2539,11 +2444,14 @@
         }
         // Staging em memória: chave = nome normalizado → dados acumulados (vendas + avarias).
         const batchStaging = {};
+        // Resolução de nomes duplicados: chave normalizada → id do participante escolhido pelo admin.
+        const conflictChoices = {};
         function novoStaging(nome) {
             return { nome, rota: '', faturamento: '', volumeVendido: null, qtdClientes: null, volumeAvarias: null };
         }
         function limparBatch() {
             Object.keys(batchStaging).forEach(k => delete batchStaging[k]);
+            Object.keys(conflictChoices).forEach(k => delete conflictChoices[k]);
             const v = document.getElementById('batchVendasName');
             const a = document.getElementById('batchAvariasName');
             if (v) v.textContent = 'Clique para enviar';
@@ -2553,8 +2461,16 @@
             });
             renderBatchPreview();
         }
-        // Lê o HTML e devolve [{ nome, rota, faturamento, volume, clientes }] a partir da
-        // tabela "Ranking de vendedores" (colunas Vendedor / Loja / Faturamento / Volume / Clientes).
+        // Este app é APENAS da unidade Parauapebas (PA matriz). Só entram vendedores
+        // cuja "Loja" contém "Parauapebas" ou "PA matriz"; o resto é ignorado.
+        const UNIDADE_TERMOS = ['PARAUAPEBAS', 'PA MATRIZ'];
+        function ehParauapebas(loja) {
+            const n = normNome(loja);
+            return UNIDADE_TERMOS.some(t => n.includes(t));
+        }
+        // Lê o HTML e devolve { rows: [{ nome, rota, faturamento, volume, clientes }], ignorados }
+        // a partir da tabela "Ranking de vendedores" (colunas Vendedor / Loja / Faturamento / Volume / Clientes),
+        // já FILTRADA para conter somente a unidade Parauapebas. `ignorados` = linhas de outras unidades.
         function parseRelatorioVendedoresHTML(text) {
             const docHtml = new DOMParser().parseFromString(text, 'text/html');
             const tables = Array.from(docHtml.querySelectorAll('table'));
@@ -2578,22 +2494,26 @@
                     }
                 }
                 if (hIdx === -1) continue;
-                const out = [];
+                if (cols.loja === -1) throw new Error('Coluna "Loja" não encontrada — não dá para filtrar pela unidade Parauapebas.');
+                const rows = [];
+                let ignorados = 0;
                 for (let i = hIdx + 1; i < trs.length; i++) {
                     const cells = Array.from(trs[i].querySelectorAll('th,td'));
                     if (!cells.length) continue;
                     const nome = (cells[cols.vend]?.textContent || '').trim();
                     const nomeN = normNome(nome);
                     if (!nome || nomeN === 'VENDEDOR' || nomeN.startsWith('TOTAL')) continue;
-                    out.push({
+                    const loja = (cells[cols.loja]?.textContent || '').trim();
+                    if (!ehParauapebas(loja)) { ignorados++; continue; } // outra unidade → fora
+                    rows.push({
                         nome,
-                        rota: cols.loja !== -1 ? (cells[cols.loja]?.textContent || '').trim() : '',
+                        rota: loja,
                         faturamento: cols.fat !== -1 ? (cells[cols.fat]?.textContent || '').trim() : '',
                         volume: parseNum(cells[cols.vol]?.textContent || ''),
                         clientes: Math.round(parseNum(cells[cols.cli]?.textContent || ''))
                     });
                 }
-                if (out.length) return out;
+                return { rows, ignorados };
             }
             throw new Error('Tabela com colunas "Vendedor", "Volume" e "Clientes" não encontrada no HTML.');
         }
@@ -2602,7 +2522,12 @@
             if (!file) return;
             try {
                 const text = await file.text();
-                const rows = parseRelatorioVendedoresHTML(text);
+                const { rows, ignorados } = parseRelatorioVendedoresHTML(text);
+                if (!rows.length) {
+                    input.value = '';
+                    toast('Nenhum vendedor de Parauapebas', `O relatório não tem linhas da unidade Parauapebas${ignorados ? ` (${ignorados} de outra(s) unidade(s) ignorada(s))` : ''}.`, 'warning');
+                    return;
+                }
                 rows.forEach(r => {
                     const e = batchStaging[normNome(r.nome)] || (batchStaging[normNome(r.nome)] = novoStaging(r.nome));
                     e.nome = r.nome;
@@ -2614,7 +2539,7 @@
                 document.getElementById('batchVendasName').textContent = `${file.name} ✓ (${rows.length})`;
                 input.closest('.xlsx-import').classList.add('ok');
                 renderBatchPreview();
-                toast('Vendas (HTML) lido!', `${rows.length} vendedor(es) encontrado(s). Confira antes de confirmar.`, 'success');
+                toast('Vendas (HTML) lido!', `${rows.length} vendedor(es) de Parauapebas${ignorados ? ` · ${ignorados} de outra unidade ignorado(s)` : ''}. Confira antes de confirmar.`, 'success');
             } catch (err) {
                 console.error(err);
                 input.value = '';
@@ -2627,7 +2552,12 @@
             if (!file) return;
             try {
                 const text = await file.text();
-                const rows = parseRelatorioVendedoresHTML(text);
+                const { rows, ignorados } = parseRelatorioVendedoresHTML(text);
+                if (!rows.length) {
+                    input.value = '';
+                    toast('Nenhum vendedor de Parauapebas', `O relatório de avarias não tem linhas da unidade Parauapebas${ignorados ? ` (${ignorados} de outra(s) unidade(s) ignorada(s))` : ''}.`, 'warning');
+                    return;
+                }
                 rows.forEach(r => {
                     const e = batchStaging[normNome(r.nome)] || (batchStaging[normNome(r.nome)] = novoStaging(r.nome));
                     e.nome = e.nome || r.nome;
@@ -2637,7 +2567,7 @@
                 document.getElementById('batchAvariasName').textContent = `${file.name} ✓ (${rows.length})`;
                 input.closest('.xlsx-import').classList.add('ok');
                 renderBatchPreview();
-                toast('Avarias (HTML) lido!', `${rows.length} vendedor(es) encontrado(s). Confira antes de confirmar.`, 'success');
+                toast('Avarias (HTML) lido!', `${rows.length} vendedor(es) de Parauapebas${ignorados ? ` · ${ignorados} de outra unidade ignorado(s)` : ''}. Confira antes de confirmar.`, 'success');
             } catch (err) {
                 console.error(err);
                 input.value = '';
@@ -2699,19 +2629,33 @@
             try {
                 await authReady;
                 await refreshParticipants();
-                const byName = {};
-                DB.participants.forEach(p => { byName[normNome(p.name)] = p; });
+                // Agrupa participantes por nome normalizado (pode haver homônimos no cadastro).
+                const groups = {};
+                DB.participants.forEach(p => { (groups[normNome(p.name)] ||= []).push(p); });
+                // Há nome do relatório que casa com 2+ participantes e ainda não foi resolvido? Pare e pergunte.
+                const conflitos = [...new Set(entries.map(e => normNome(e.nome)))]
+                    .filter(k => (groups[k]?.length || 0) >= 2 && !conflictChoices[k]);
+                if (conflitos.length) {
+                    btn.disabled = false;
+                    btn.innerHTML = labelOrig;
+                    abrirModalConflitos(conflitos, groups);
+                    return;
+                }
                 let lancados = 0, atualizados = 0, criados = 0;
                 for (const e of entries) {
                     const key = normNome(e.nome);
-                    let part = byName[key];
+                    const grupo = groups[key] || [];
+                    let part;
+                    if (grupo.length >= 2) part = grupo.find(p => p.id === conflictChoices[key]) || null;
+                    else if (grupo.length === 1) part = grupo[0];
+                    else part = null;
                     if (!part) {
                         const ref = await addDoc(collection(db, 'participantes'), {
                             nome: e.nome, celular: '', rota: e.rota || '',
                             ativo: true, status: 'aprovado', criadoEm: serverTimestamp()
                         });
                         part = { id: ref.id, name: e.nome };
-                        byName[key] = part;
+                        (groups[key] ||= []).push(part);
                         criados++;
                     } else if (e.rota) {
                         await updateDoc(doc(db, 'participantes', part.id), { rota: e.rota });
@@ -2752,6 +2696,40 @@
             }
         }
         window.confirmarImportacaoLote = confirmarImportacaoLote;
+        // Abre o modal para o admin escolher, entre participantes homônimos, qual é o do relatório.
+        function abrirModalConflitos(conflitos, groups) {
+            const nomeStaged = {};
+            Object.values(batchStaging).forEach(e => { nomeStaged[normNome(e.nome)] = e.nome; });
+            const blocos = conflitos.map((key, idx) => {
+                const opcoes = groups[key].map(p =>
+                    `<option value="${p.id}">${p.name}${p.rota ? ' — ' + p.rota : ''}${p.celular ? ' — ' + p.celular : ''}</option>`
+                ).join('');
+                return `
+                    <div style="margin-bottom:16px;">
+                        <label style="display:block;font-weight:700;margin-bottom:6px;">${nomeStaged[key] || key}</label>
+                        <select id="conf_${idx}" data-key="${key}" style="width:100%;padding:12px;border:2px solid var(--green);border-radius:12px;font-family:'Montserrat';font-weight:700;">
+                            ${opcoes}
+                        </select>
+                    </div>`;
+            }).join('');
+            openModal('Vendedores com nome repetido', `
+                <p style="color:var(--gray-dark);font-size:0.88rem;margin-bottom:16px;">
+                    Existe mais de um participante cadastrado com este nome. Escolha qual deles corresponde ao vendedor do relatório antes de importar.
+                </p>
+                ${blocos}
+                <button type="button" class="auth-btn" onclick="resolverConflitosEImportar()" style="margin-top:8px;">
+                    <i class="fas fa-check"></i> Confirmar escolha e importar
+                </button>
+            `);
+        }
+        function resolverConflitosEImportar() {
+            document.querySelectorAll('#modalBody select[id^="conf_"]').forEach(sel => {
+                conflictChoices[sel.dataset.key] = sel.value;
+            });
+            closeModal();
+            confirmarImportacaoLote();
+        }
+        window.resolverConflitosEImportar = resolverConflitosEImportar;
         async function saveScore(e) {
             e.preventDefault();
             const pid = document.getElementById('scoreParticipant').value;
@@ -2777,7 +2755,6 @@
                 toast('Registrado!', 'Pontuação salva com sucesso.', 'success');
                 e.target.reset();
                 document.getElementById('scoreDate').valueAsDate = new Date();
-                resetImportUI();
                 preencherUltimoPrecedente();
                 calcVolumePreview();
                 loadAdminHistory();
