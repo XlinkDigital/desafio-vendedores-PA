@@ -1884,9 +1884,35 @@
                 });
             });
         }
+        // FONTE ÚNICA DE VERDADE dos seletores de participante.
+        // Re-renderiza TODOS os dropdowns a partir de DB.participants (Firestore),
+        // preservando a seleção atual só quando o participante ainda existe.
+        // Chamado dentro de refreshAll() → todos os selects ficam sempre sincronizados
+        // (e ficam vazios automaticamente após um reset, sem sobrar nome em cache).
+        function syncParticipantSelects() {
+            const ativos = (getParticipants() || []).filter(p => p.active);
+            const ids = new Set(ativos.map(p => p.id));
+            const opts = ativos.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            const configs = [
+                { id: 'selParticipant', ph: 'Selecione seu nome...', phVal: '' },
+                { id: 'selEvolucao',    ph: 'Selecione seu nome...', phVal: '' },
+                { id: 'scoreParticipant', ph: 'Selecione...',        phVal: '' },
+                { id: 'selAdminEvo',    ph: 'Todos os participantes', phVal: 'all' },
+            ];
+            configs.forEach(cfg => {
+                const el = document.getElementById(cfg.id);
+                if (!el) return;
+                const prev = el.value;
+                el.innerHTML = `<option value="${cfg.phVal}">${cfg.ph}</option>` + opts;
+                // Mantém a seleção apenas se o participante ainda existir; senão volta ao placeholder.
+                el.value = ids.has(prev) ? prev : cfg.phVal;
+            });
+        }
+        window.syncParticipantSelects = syncParticipantSelects;
         async function refreshAll() {
             try {
                 await Promise.all([refreshParticipants(), refreshScores()]);
+                syncParticipantSelects();
                 updatePendingBadge();
             } catch (err) {
                 console.error('Erro ao carregar dados:', err);
@@ -2183,10 +2209,8 @@
         // PARTICIPANT VIEWS
         // ═══════════════════════════════════════════
         function initParticipantSelects() {
-            const parts = getParticipants() || [];
-            const opts = parts.filter(p => p.active).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-            document.getElementById('selParticipant').innerHTML = '<option value="">Selecione seu nome...</option>' + opts;
-            document.getElementById('selEvolucao').innerHTML = '<option value="">Selecione seu nome...</option>' + opts;
+            // Delega à fonte única de verdade (mantém todos os selects sincronizados).
+            syncParticipantSelects();
         }
         window.initParticipantSelects = initParticipantSelects;
         function loadMeuRanking() {
@@ -2347,7 +2371,14 @@
                 const n = parseFloat(raw);
                 return isNaN(n) ? -1 : n;
             };
+            // O ranking carrega e exibe TODOS os vendedores ativos automaticamente,
+            // sem depender de nenhuma seleção. (Importou dados → aparecem aqui sozinhos.)
             const ranking = calcRanking().slice().sort((a, b) => sortVal(b) - sortVal(a));
+            if (ranking.length === 0) {
+                document.getElementById('podiumAdmin').innerHTML = '';
+                document.getElementById('tableAdmin').innerHTML = '<tr><td colspan="7"><div class="empty"><i class="fas fa-trophy"></i><h3>Nenhum vendedor ainda</h3><p>Importe um relatório ou cadastre participantes para ver o ranking.</p></div></td></tr>';
+                return;
+            }
             const top3 = ranking.slice(0, 3);
             const order = [1, 0, 2];
             const pts = p => filter === 'all' ? p.scores.total : p.scores[filter];
@@ -2394,9 +2425,8 @@
         }
         window.filterAdmRanking = filterAdmRanking;
         function initRegistrar() {
-            const parts = getParticipants() || [];
-            document.getElementById('scoreParticipant').innerHTML = '<option value="">Selecione...</option>' +
-                parts.filter(p => p.active).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            // O dropdown de participante é populado pela fonte única (refreshAll → syncParticipantSelects).
+            syncParticipantSelects();
             document.getElementById('scoreDate').valueAsDate = new Date();
             const bd = document.getElementById('batchDate');
             if (bd && !bd.value) bd.valueAsDate = new Date();
@@ -2703,6 +2733,7 @@
                 }
                 await refreshAll();
                 initRegistrar();
+                loadAdmRanking();
                 limparBatch();
                 toast('Importação concluída!', `${lancados} novo(s) lançamento(s) · ${atualizados} atualizado(s) · ${criados} vendedor(es) criado(s).`, 'success');
             } catch (err) {
@@ -2938,10 +2969,13 @@
                     ...snapScores.docs.map(d => fbDeleteDoc(doc(db, 'pontuacoes', d.id))),
                     ...snapParts.docs.map(d => fbDeleteDoc(doc(db, 'participantes', d.id)))
                 ]);
+                // refreshAll() recarrega do Firestore (agora vazio) e, via syncParticipantSelects(),
+                // zera TODOS os dropdowns de participante — nada fica em cache.
                 await refreshAll();
                 loadAdmParticipants();
                 loadAdmPending();
                 loadAdminHistory();
+                loadAdmRanking();
                 toast('App zerado', `${snapScores.size} registro(s) e ${snapParts.size} participante(s) removidos.`, 'info');
             } catch (err) {
                 console.error(err);
@@ -3000,9 +3034,8 @@
         }
         window.recusarSolicitacao = recusarSolicitacao;
         function initAdminEvo() {
-            const parts = getParticipants() || [];
-            document.getElementById('selAdminEvo').innerHTML = '<option value="all">Todos os participantes</option>' +
-                parts.filter(p => p.active).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            // selAdminEvo é populado pela fonte única (refreshAll → syncParticipantSelects).
+            syncParticipantSelects();
             renderAdminEvo();
         }
         window.initAdminEvo = initAdminEvo;
