@@ -1532,6 +1532,13 @@
                         <button class="filter-chip" onclick="filterAdmRanking('c')">Critério C</button>
                         <button class="filter-chip" onclick="filterAdmRanking('d')">Critério D</button>
                     </div>
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:4px 0 12px;">
+                        <label for="rankMonth" style="font-size:0.82rem; font-weight:700; color:var(--gray-dark)"><i class="fas fa-calendar-alt" style="color:var(--green)"></i> Mês de referência:</label>
+                        <select id="rankMonth" onchange="changeRankMonth(this.value)" style="padding:8px 12px; border:2px solid var(--green); border-radius:10px; font-family:'Montserrat'; font-weight:700; font-size:0.82rem; background:#fff; color:var(--green-dark);">
+                            <option value="">Mês mais recente (automático)</option>
+                        </select>
+                        <span id="rankMonthHint" style="font-size:0.76rem; color:#888"></span>
+                    </div>
                     <div style="overflow-x: auto;">
                         <table class="ranking-table">
                             <thead>
@@ -2216,27 +2223,42 @@
         // ═══════════════════════════════════════════
         // RANKING CALC
         // ═══════════════════════════════════════════
-        function calcRanking() {
+        // refMonth: 'YYYY-MM' para ranquear por um mês específico (dropdown), ou null = mês mais recente
+        // de cada vendedor (padrão). Com mês escolhido, A/B/C/D usam o registro/lançamentos daquele mês.
+        function calcRanking(refMonth = null) {
             const participants = getParticipants() || [];
             const scores = getScores() || [];
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const emptyScores = () => ({ a: '0.0', b: '—', bNA: true, c: '0.0', d: '0.0', total: '0.0' });
             const out = participants.filter(p => p.active).map(p => {
                 // Histórico completo do vendedor, em ordem cronológica (A e B são por período).
                 const hist = scores.filter(s => s.participantId === p.id)
                     .sort((x, y) => new Date(x.date) - new Date(y.date));
-                if (hist.length === 0) return { ...p, scores: { a: '0.0', b: '—', bNA: true, c: '0.0', d: '0.0', total: '0.0' } };
-                const latest = hist[hist.length - 1];
+                if (hist.length === 0) return { ...p, scores: emptyScores() };
 
-                // Critério A — avaria % do período mais recente (notas já calculadas em enrichScores).
-                const sa = (latest.volumeVendido > 0 ? latest.a : 0) * PESO_A;
+                // Registro de referência: o mais recente (padrão) ou o último DO mês escolhido.
+                // Sem lançamento no mês selecionado → vendedor sem nota nesse mês (vai pro fim).
+                let ref;
+                if (refMonth) {
+                    const doMes = hist.filter(s => (s.date || '').slice(0, 7) === refMonth);
+                    if (!doMes.length) return { ...p, scores: emptyScores() };
+                    ref = doMes[doMes.length - 1];
+                } else {
+                    ref = hist[hist.length - 1];
+                }
 
-                // Critério B — crescimento vs período anterior do próprio vendedor.
-                // Sem período anterior (bNA) → não pontua e exibe "—".
-                const sb = latest.bNA ? 0 : latest.b * PESO_B;
+                // Critério A — avaria % do período de referência (notas já calculadas em enrichScores).
+                const sa = (ref.volumeVendido > 0 ? ref.a : 0) * PESO_A;
 
-                // Critérios C e D — média dos últimos 30 dias (lógica original preservada, só com peso).
-                const pScores = hist.filter(s => new Date(s.date) >= thirtyDaysAgo);
+                // Critério B — crescimento do ticket médio do mês de referência vs mês anterior.
+                // Sem mês anterior (bNA) → não pontua e exibe "—".
+                const sb = ref.bNA ? 0 : ref.b * PESO_B;
+
+                // Critérios C e D — média do mês escolhido, ou dos últimos 30 dias (padrão, lógica original).
+                const pScores = refMonth
+                    ? hist.filter(s => (s.date || '').slice(0, 7) === refMonth)
+                    : hist.filter(s => new Date(s.date) >= thirtyDaysAgo);
                 const avgC = pScores.length ? pScores.reduce((s, x) => s + x.c, 0) / pScores.length : 0;
                 const avgD = pScores.length ? pScores.reduce((s, x) => s + x.d, 0) / pScores.length : 0;
                 const sc = Math.min(100, avgC * 5) * PESO_C;
@@ -2247,14 +2269,14 @@
                     ...p,
                     scores: {
                         a: sa.toFixed(1),
-                        b: latest.bNA ? '—' : sb.toFixed(1),
-                        bNA: latest.bNA,
+                        b: ref.bNA ? '—' : sb.toFixed(1),
+                        bNA: ref.bNA,
                         c: sc.toFixed(1), d: sd.toFixed(1),
-                        crescTicketPct: latest.crescTicketPct, // crescimento % do ticket médio mensal
-                        ticketMes: latest.ticketMes,           // ticket do mês mais recente (R$/kg)
-                        ticketPrevMes: latest.ticketPrevMes,   // ticket do mês anterior (R$/kg)
-                        avariaPct: latest.avariaPct,
-                        volPorCliente: latest.volPorCliente,
+                        crescTicketPct: ref.crescTicketPct, // crescimento % do ticket médio mensal
+                        ticketMes: ref.ticketMes,           // ticket do mês de referência (R$/kg)
+                        ticketPrevMes: ref.ticketPrevMes,   // ticket do mês anterior (R$/kg)
+                        avariaPct: ref.avariaPct,
+                        volPorCliente: ref.volPorCliente,
                         total: total.toFixed(1)
                     }
                 };
@@ -2432,8 +2454,35 @@
         // ADMIN VIEWS
         // ═══════════════════════════════════════════
         let admRankingFilter = 'all';
+        let admRankingMonth = ''; // '' = mês mais recente automático; 'YYYY-MM' = mês fixo do dropdown
+        // 'YYYY-MM' → '06/2026'
+        function fmtMesLabel(mk) { const [y, m] = mk.split('-'); return `${m}/${y}`; }
+        // Meses com lançamento, mais recente primeiro.
+        function mesesDisponiveis() {
+            const set = new Set((getScores() || []).map(s => (s.date || '').slice(0, 7)).filter(Boolean));
+            return [...set].sort().reverse();
+        }
+        // Popula o dropdown de mês de referência preservando a seleção atual (se ainda existir).
+        function popularMesesRanking() {
+            const sel = document.getElementById('rankMonth');
+            if (!sel) return;
+            const meses = mesesDisponiveis();
+            const atual = admRankingMonth;
+            sel.innerHTML = '<option value="">Mês mais recente (automático)</option>' +
+                meses.map(mk => `<option value="${mk}">${fmtMesLabel(mk)}</option>`).join('');
+            sel.value = meses.includes(atual) ? atual : '';
+            admRankingMonth = sel.value;
+        }
+        function changeRankMonth(v) { admRankingMonth = v; loadAdmRanking(); }
+        window.changeRankMonth = changeRankMonth;
         function loadAdmRanking(filter = admRankingFilter) {
             admRankingFilter = filter;
+            popularMesesRanking();
+            const refMonth = admRankingMonth || null;
+            const hint = document.getElementById('rankMonthHint');
+            if (hint) hint.textContent = refMonth
+                ? `Crescimento de ${fmtMesLabel(refMonth)} vs o mês anterior de cada vendedor.`
+                : 'Usa o mês mais recente de cada vendedor.';
             // Ordena pelo critério escolhido (ou pelo total quando "Todos")
             // Valor de ordenação: total quando filtro = "all"; senão a nota do critério.
             // "—" (B sem período anterior) vira -1 para cair pro fim da lista.
@@ -2451,7 +2500,7 @@
             const ticketVal = p => Number(p.scores.ticketMes) || 0;
             // O ranking carrega e exibe TODOS os vendedores ativos automaticamente,
             // sem depender de nenhuma seleção. (Importou dados → aparecem aqui sozinhos.)
-            const ranking = calcRanking().slice().sort((a, b) => (sortVal(b) - sortVal(a)) || (ticketVal(b) - ticketVal(a)));
+            const ranking = calcRanking(refMonth).slice().sort((a, b) => (sortVal(b) - sortVal(a)) || (ticketVal(b) - ticketVal(a)));
             if (ranking.length === 0) {
                 document.getElementById('podiumAdmin').innerHTML = '';
                 document.getElementById('tableAdmin').innerHTML = '<tr><td colspan="7"><div class="empty"><i class="fas fa-trophy"></i><h3>Nenhum vendedor ainda</h3><p>Importe um relatório ou cadastre participantes para ver o ranking.</p></div></td></tr>';

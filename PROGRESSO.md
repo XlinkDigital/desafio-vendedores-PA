@@ -83,7 +83,7 @@ Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendid
 - [ ] Migrar **documentos e fotos** (hoje em localStorage) para Firebase Storage/Firestore, se quiser que sejam compartilhados.
 - [ ] Conferir/ajustar **regras do Firestore** conforme o uso real (já foram publicadas pelo dono).
 - [x] ~~Edição de pontuação~~ — JÁ EXISTE (`editScore`/`saveScore`/`deleteScore` no histórico do Registrar, botões editar/excluir).
-- [ ] **Dropdown de mês** no ranking de crescimento (ex.: comparar 06/2026 vs 05/2026 manualmente). Hoje o ranking sempre usa o mês mais recente do vendedor automaticamente.
+- [x] ~~Dropdown de mês no ranking de crescimento~~ — FEITO. Seletor "Mês de referência" na aba Ranking admin (`#rankMonth`); `calcRanking(refMonth)` ranqueia por um mês fixo ('YYYY-MM') ou pelo mês mais recente de cada vendedor (default ''). Com mês escolhido, A/B/C/D usam os lançamentos daquele mês; sem dados no mês → vendedor sem nota. Funções: `mesesDisponiveis`/`popularMesesRanking`/`changeRankMonth`/`fmtMesLabel`.
 - [ ] Definir período de avaliação real para C/D (hoje usa "últimos 30 dias" fixo; A usa período mais recente; B agora é mês-calendário).
 - [ ] Decidir o que fazer com `exemplo-relatorio-VENDAS.xlsx` / `exemplo-relatorio-AVARIAS.xlsx` (hoje **não commitados** na pasta): commitar, `.gitignore` ou remover.
 
