@@ -1442,8 +1442,8 @@
                         <div class="explain-card b">
                             <span class="explain-emoji">📈</span>
                             <h3>Vendas Positivo <span class="explain-badge">B</span></h3>
-                            <p>Crescimento nas vendas em relação ao período anterior.</p>
-                            <div class="explain-analogy">"Venda mais que no mês passado. O número tem que estar no azul!"</div>
+                            <p>Crescimento do <strong>ticket médio (R$/kg)</strong> em relação ao mês anterior.</p>
+                            <div class="explain-analogy">"Venda mais caro por quilo que no mês passado — valor agregado, não só volume!"</div>
                         </div>
                         <div class="explain-card c">
                             <span class="explain-emoji">⭐</span>
@@ -1602,9 +1602,13 @@
                             </div>
                         </div>
                         <div class="input-group a" style="margin-bottom:14px;">
-                            <label><i class="fas fa-weight-hanging"></i> Volume do período (kg) — base dos critérios A e B</label>
+                            <label><i class="fas fa-weight-hanging"></i> Dados do período (R$ + kg) — base dos critérios A e B</label>
                             <p style="font-size:0.76rem; color:var(--gray-dark); margin:4px 0 10px;">Preencha manualmente para ajustar um vendedor específico, ou use a <strong>importação em lote (HTML)</strong> acima para todos de uma vez.</p>
                             <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:4px;">
+                                <div>
+                                    <label style="font-size:0.72rem; color:var(--gray-dark); font-weight:600; display:block; margin-bottom:4px;">Faturamento do período (R$)</label>
+                                    <input type="number" id="scoreFat" min="0" step="0.01" placeholder="0" oninput="calcVolumePreview()">
+                                </div>
                                 <div>
                                     <label style="font-size:0.72rem; color:var(--gray-dark); font-weight:600; display:block; margin-bottom:4px;">Volume vendido (kg)</label>
                                     <input type="number" id="scoreVol" min="0" step="0.01" placeholder="0" oninput="calcVolumePreview()" required>
@@ -1619,10 +1623,11 @@
                                 </div>
                             </div>
                             <div style="margin-top:12px; display:flex; gap:18px; flex-wrap:wrap; font-size:0.85rem; font-weight:700;">
+                                <span style="color:var(--green-dark)">Ticket médio: <span id="previewTicket">—</span></span>
                                 <span style="color:var(--orange)">Avaria: <span id="previewPctAvaria">0,0%</span></span>
                                 <span style="color:var(--green-dark)">Volume por cliente: <span id="previewVolCliente">0 kg</span></span>
                             </div>
-                            <p style="margin-top:8px; font-size:0.76rem; color:var(--gray-dark)">A nota de <strong>Vendas Positivo (B)</strong> é calculada automaticamente comparando este volume com o do período anterior do vendedor.</p>
+                            <p style="margin-top:8px; font-size:0.76rem; color:var(--gray-dark)">A nota de <strong>Vendas Positivo (B)</strong> é o crescimento do <strong>ticket médio (R$/kg)</strong> deste mês comparado ao mês anterior do vendedor.</p>
                         </div>
                         <div class="input-grid">
                             <div class="input-group c">
@@ -1809,18 +1814,20 @@
         // 1 = todos valem o mesmo (máx 100 pts cada, total 400).
         // ═══════════════════════════════════════════
         const PESO_A = 1; // Trocas e Avarias (menor avaria = melhor)
-        const PESO_B = 1; // Vendas Positivo (crescimento de volume)
+        const PESO_B = 1; // Vendas Positivo (crescimento do ticket médio R$/kg)
         const PESO_C = 1; // Precedentes
         const PESO_D = 1; // Consulta de Preço
         // ── Critério A — Trocas e Avarias (tudo em kg, sem R$) ──────────
         // avaria_% = volume_avarias_kg / volume_vendido_kg  (ex.: 2.000/50.000 = 4%)
         // Menor % = nota maior → justo entre portes. Pontos descontados por cada 1% de avaria:
         const AVARIA_PTS_POR_PCT = 5; // 4% → -20 pts (nota 80); 20% → nota 0
-        // ── Critério B — Vendas Positivo (crescimento de volume vs período anterior) ──
-        // cresc_% = (volume_atual - volume_anterior) / volume_anterior, comparando o vendedor
-        // com o PRÓPRIO período anterior. Sem período anterior → "—" (sem nota).
-        const CRESC_NOTA_BASE = 50;    // manter o mesmo volume = 50 pts
-        const CRESC_PTS_POR_PCT = 2.5; // +20% → 100 pts; -20% → 0 pts
+        // ── Critério B — Vendas Positivo (crescimento do TICKET MÉDIO mensal) ──
+        // ticket_médio do mês = faturamento_R$ / volume_kg.
+        // cresc_% = (ticket_atual - ticket_anterior) / ticket_anterior, comparando o vendedor
+        // com o PRÓPRIO mês anterior. Premia quem agrega valor por kg, não quem vende mais volume.
+        // Sem mês anterior com ticket → "—" (sem nota). Em caso de empate no %, desempata pelo maior ticket.
+        const CRESC_NOTA_BASE = 50;    // manter o mesmo ticket = 50 pts
+        const CRESC_PTS_POR_PCT = 2.5; // +20% de ticket → 100 pts; -20% → 0 pts
         // ═══════════════════════════════════════════
         // STATE
         // ═══════════════════════════════════════════
@@ -1869,10 +1876,11 @@
                     id: d.id,
                     participantId: x.participantId,
                     date: x.date,
-                    // Dados crus do período (kg + clientes) — base dos critérios A e B
+                    // Dados crus do período (kg + clientes + R$) — base dos critérios A e B
                     volumeVendido: Number(x.volumeVendido) || 0,
                     volumeAvarias: Number(x.volumeAvarias) || 0,
                     qtdClientes: Number(x.qtdClientes) || 0,
+                    faturamento: Number(x.faturamento) || 0, // R$ do período — ticket médio = faturamento/volume
                     c: Number(x.c) || 0,
                     d: Number(x.d) || 0,
                     notes: x.notes || ''
@@ -1881,30 +1889,63 @@
             enrichScores();
         }
         // Calcula, por registro, as notas A e B e a métrica de apoio (volume/cliente).
-        // B precisa do período anterior do MESMO vendedor → ordena por data antes.
+        // B = crescimento do TICKET MÉDIO mensal (R$/kg) → precisa agregar por mês-calendário.
         function enrichScores() {
             const porVendedor = {};
             DB.scores.forEach(s => { (porVendedor[s.participantId] ||= []).push(s); });
             Object.values(porVendedor).forEach(lista => {
                 lista.sort((a, b) => new Date(a.date) - new Date(b.date));
-                lista.forEach((s, i) => {
+
+                // ── Ticket médio MENSAL (R$/kg) por mês-calendário, base do critério B ──
+                // Soma faturamento e volume de TODOS os lançamentos do mesmo mês (YYYY-MM)
+                // e calcula o ticket do mês = ΣR$ / Σkg. (Mantemos lançamento por período/data;
+                // a comparação do ranking é mês a mês.)
+                const meses = {};
+                lista.forEach(s => {
+                    const mk = (s.date || '').slice(0, 7); // 'YYYY-MM'
+                    const m = meses[mk] || (meses[mk] = { fat: 0, vol: 0 });
+                    m.fat += s.faturamento || 0;
+                    m.vol += s.volumeVendido || 0;
+                });
+                Object.values(meses).forEach(m => {
+                    m.ticket = (m.fat > 0 && m.vol > 0) ? m.fat / m.vol : null; // sem R$ ou sem kg → não dá ticket
+                });
+                // Crescimento do ticket de cada mês vs o mês COM TICKET válido imediatamente anterior.
+                const crescDoMes = {}; // 'YYYY-MM' -> { crescPct, ticket, ticketPrev }
+                let mesPrev = null;
+                Object.keys(meses).sort().forEach(mk => { // 'YYYY-MM' ordena lexicograficamente = cronológico
+                    const t = meses[mk].ticket;
+                    if (t == null) return; // mês sem ticket não entra na comparação nem vira referência
+                    if (mesPrev != null) {
+                        const tp = meses[mesPrev].ticket;
+                        crescDoMes[mk] = { crescPct: (t - tp) / tp * 100, ticket: t, ticketPrev: tp };
+                    } else {
+                        crescDoMes[mk] = { crescPct: null, ticket: t, ticketPrev: null }; // 1º mês com dados → "—"
+                    }
+                    mesPrev = mk;
+                });
+
+                lista.forEach((s) => {
                     // A — avaria percentual (menor = melhor)
                     const avariaPct = s.volumeVendido > 0 ? s.volumeAvarias / s.volumeVendido : 0;
                     s.avariaPct = avariaPct;
                     s.a = s.volumeVendido > 0
                         ? parseFloat(Math.min(100, Math.max(0, 100 - avariaPct * 100 * AVARIA_PTS_POR_PCT)).toFixed(1))
                         : 0;
-                    // B — crescimento vs período anterior do próprio vendedor
-                    const prev = i > 0 ? lista[i - 1] : null;
-                    if (prev && prev.volumeVendido > 0) {
-                        const crescPct = (s.volumeVendido - prev.volumeVendido) / prev.volumeVendido * 100;
-                        s.crescPct = crescPct;
-                        s.b = parseFloat(Math.min(100, Math.max(0, CRESC_NOTA_BASE + crescPct * CRESC_PTS_POR_PCT)).toFixed(1));
+                    // B — crescimento do ticket médio do MÊS deste lançamento vs o mês anterior do vendedor
+                    const mk = (s.date || '').slice(0, 7);
+                    const info = crescDoMes[mk];
+                    s.ticketMes = (meses[mk] && meses[mk].ticket) || null;
+                    if (info && info.crescPct != null) {
+                        s.crescTicketPct = info.crescPct;
+                        s.ticketPrevMes = info.ticketPrev;
+                        s.b = parseFloat(Math.min(100, Math.max(0, CRESC_NOTA_BASE + info.crescPct * CRESC_PTS_POR_PCT)).toFixed(1));
                         s.bNA = false;
                     } else {
-                        s.crescPct = null;
+                        s.crescTicketPct = null;
+                        s.ticketPrevMes = null;
                         s.b = 0;
-                        s.bNA = true;
+                        s.bNA = true; // sem mês anterior com ticket → "—", não pontua
                     }
                     // Métrica de apoio — produtividade por cliente
                     s.volPorCliente = s.qtdClientes > 0 ? s.volumeVendido / s.qtdClientes : 0;
@@ -2209,7 +2250,9 @@
                         b: latest.bNA ? '—' : sb.toFixed(1),
                         bNA: latest.bNA,
                         c: sc.toFixed(1), d: sd.toFixed(1),
-                        crescPct: latest.crescPct,
+                        crescTicketPct: latest.crescTicketPct, // crescimento % do ticket médio mensal
+                        ticketMes: latest.ticketMes,           // ticket do mês mais recente (R$/kg)
+                        ticketPrevMes: latest.ticketPrevMes,   // ticket do mês anterior (R$/kg)
                         avariaPct: latest.avariaPct,
                         volPorCliente: latest.volPorCliente,
                         total: total.toFixed(1)
@@ -2293,7 +2336,7 @@
             if (!me) return;
             const criteria = [
                 { key: 'a', name: 'Trocas e Avarias', icon: '🛡️', desc: 'Cuide do produto como se fosse seu. Quanto menos quebra e troca, melhor.', color: '#00a651' },
-                { key: 'b', name: 'Vendas Positivo', icon: '📈', desc: 'Venda mais que no mês passado. O número tem que estar no azul!', color: '#ffc72c' },
+                { key: 'b', name: 'Vendas Positivo', icon: '📈', desc: 'Aumente o ticket médio (R$/kg) em relação ao mês passado — valor agregado!', color: '#ffc72c' },
                 { key: 'c', name: 'Precedente Positivo', icon: '⭐', desc: 'Atenda os pedidos da diretoria. Quanto mais precedentes positivos, mais pontos.', color: '#ff9800' },
                 { key: 'd', name: 'Consulta de Preço', icon: '🔍', desc: 'Prospecção e iniciativa. Quanto mais consultas de preço, melhor.', color: '#008c44' }
             ];
@@ -2395,13 +2438,20 @@
             // Valor de ordenação: total quando filtro = "all"; senão a nota do critério.
             // "—" (B sem período anterior) vira -1 para cair pro fim da lista.
             const sortVal = p => {
+                // Filtro "B" = ranking puro pelo % de crescimento do ticket médio (maior → menor),
+                // não pela nota clampada (0-100). Sem mês anterior ("—") cai pro fim.
+                if (filter === 'b') {
+                    return (p.scores.bNA || p.scores.crescTicketPct == null) ? -Infinity : p.scores.crescTicketPct;
+                }
                 const raw = filter === 'all' ? p.scores.total : p.scores[filter];
                 const n = parseFloat(raw);
                 return isNaN(n) ? -1 : n;
             };
+            // Empate → desempata por maior ticket médio do mês atual (regra do crescimento de ticket).
+            const ticketVal = p => Number(p.scores.ticketMes) || 0;
             // O ranking carrega e exibe TODOS os vendedores ativos automaticamente,
             // sem depender de nenhuma seleção. (Importou dados → aparecem aqui sozinhos.)
-            const ranking = calcRanking().slice().sort((a, b) => sortVal(b) - sortVal(a));
+            const ranking = calcRanking().slice().sort((a, b) => (sortVal(b) - sortVal(a)) || (ticketVal(b) - ticketVal(a)));
             if (ranking.length === 0) {
                 document.getElementById('podiumAdmin').innerHTML = '';
                 document.getElementById('tableAdmin').innerHTML = '<tr><td colspan="7"><div class="empty"><i class="fas fa-trophy"></i><h3>Nenhum vendedor ainda</h3><p>Importe um relatório ou cadastre participantes para ver o ranking.</p></div></td></tr>';
@@ -2436,7 +2486,7 @@
                             </div>
                         </td>
                         <td style="${hl('a')}"><div style="font-weight:700">${p.scores.a}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill a" style="width:${p.scores.a}%"></div></div></td>
-                        <td style="${hl('b')}"><div style="font-weight:700">${p.scores.b}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill b" style="width:${p.scores.bNA ? 0 : p.scores.b}%"></div></div></td>
+                        <td style="${hl('b')}"><div style="font-weight:700">${p.scores.b}</div>${crescTicketBadge(p.scores)}<div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill b" style="width:${p.scores.bNA ? 0 : p.scores.b}%"></div></div></td>
                         <td style="${hl('c')}"><div style="font-weight:700;color:var(--orange)">${p.scores.c}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill c" style="width:${p.scores.c}%"></div></div></td>
                         <td style="${hl('d')}"><div style="font-weight:700">${p.scores.d}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill d" style="width:${p.scores.d}%"></div></div></td>
                         <td><strong style="color:var(--green);font-size:1.05rem">${p.scores.total}</strong></td>
@@ -2491,13 +2541,36 @@
         function fmtKg(v) {
             return (Number(v) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' kg';
         }
+        // Formata reais (R$ 700.000,00)
+        function fmtRS(v) {
+            return 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        // Ticket médio curto (R$ 5,07/kg) — '—' quando não há ticket
+        function fmtTicket(v) {
+            return (v == null) ? '—' : 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '/kg';
+        }
+        // Badge do crescimento do ticket: "+8,3%" verde / "−7,1%" vermelho, com ticket atual ← anterior.
+        // sc = objeto p.scores. Mostra "sem mês anterior" quando bNA.
+        function crescTicketBadge(sc) {
+            if (!sc || sc.bNA || sc.crescTicketPct == null) {
+                return '<div style="font-size:0.68rem;color:#aaa;margin-top:2px">sem mês anterior</div>';
+            }
+            const pos = sc.crescTicketPct >= 0;
+            const cor = pos ? 'var(--green)' : '#e23b3b';
+            const txt = (pos ? '+' : '−') + Math.abs(sc.crescTicketPct).toFixed(1).replace('.', ',') + '%';
+            return `<div style="font-size:0.74rem;font-weight:800;color:${cor};margin-top:2px">${txt}</div>
+                    <div style="font-size:0.64rem;color:#999;line-height:1.3">${fmtTicket(sc.ticketMes)} <span style="color:#bbb">←</span> ${fmtTicket(sc.ticketPrevMes)}</div>`;
+        }
         // Cálculo ao vivo dos critérios A e B no formulário de registro
         function calcVolumePreview() {
+            const fat = parseFloat(document.getElementById('scoreFat').value) || 0;
             const vol = parseFloat(document.getElementById('scoreVol').value) || 0;
             const avarias = parseFloat(document.getElementById('scoreAvarias').value) || 0;
             const clientes = parseFloat(document.getElementById('scoreClientes').value) || 0;
             const pct = vol > 0 ? (avarias / vol) * 100 : 0;
             const volCliente = clientes > 0 ? vol / clientes : 0;
+            const ticket = (fat > 0 && vol > 0) ? fat / vol : null;
+            document.getElementById('previewTicket').textContent = fmtTicket(ticket);
             document.getElementById('previewPctAvaria').textContent = pct.toFixed(1).replace('.', ',') + '%';
             document.getElementById('previewVolCliente').textContent = fmtKg(volCliente);
         }
@@ -2672,10 +2745,14 @@
                 const existe = byName[normNome(e.nome)];
                 const pct = (e.volumeVendido && e.volumeAvarias != null) ? (e.volumeAvarias / e.volumeVendido * 100) : null;
                 const volCli = (e.volumeVendido && e.qtdClientes) ? e.volumeVendido / e.qtdClientes : null;
+                const fatNum = e.faturamento ? parseNum(e.faturamento) : 0;
+                const ticket = (fatNum > 0 && e.volumeVendido) ? fatNum / e.volumeVendido : null;
                 return `<tr>
                     <td style="font-weight:700">${e.nome}</td>
                     <td>${e.rota || '—'}</td>
+                    <td>${fatNum > 0 ? fmtRS(fatNum) : '—'}</td>
                     <td>${e.volumeVendido != null ? fmtKg(e.volumeVendido) : '—'}</td>
+                    <td style="font-weight:700;color:var(--green-dark)">${fmtTicket(ticket)}</td>
                     <td>${e.volumeAvarias != null ? fmtKg(e.volumeAvarias) : '—'}</td>
                     <td>${pct != null ? pct.toFixed(1).replace('.', ',') + '%' : '—'}</td>
                     <td>${e.qtdClientes != null ? e.qtdClientes : '—'}</td>
@@ -2687,7 +2764,7 @@
                 <div style="overflow-x:auto;">
                     <table class="ranking-table">
                         <thead><tr>
-                            <th>Vendedor</th><th>Rota</th><th>Vendido</th><th>Avarias</th><th>Avaria %</th><th>Clientes</th><th>Vol/cliente</th><th>Cadastro</th>
+                            <th>Vendedor</th><th>Rota</th><th>Faturamento</th><th>Vendido</th><th>Ticket médio</th><th>Avarias</th><th>Avaria %</th><th>Clientes</th><th>Vol/cliente</th><th>Cadastro</th>
                         </tr></thead>
                         <tbody>${rows}</tbody>
                     </table>
@@ -2745,6 +2822,7 @@
                     if (e.volumeVendido != null) payload.volumeVendido = e.volumeVendido;
                     if (e.qtdClientes != null) payload.qtdClientes = e.qtdClientes;
                     if (e.volumeAvarias != null) payload.volumeAvarias = e.volumeAvarias;
+                    if (e.faturamento) payload.faturamento = parseNum(e.faturamento); // R$ → ticket médio
                     // Já existe lançamento do vendedor nesse período? Atualiza; senão cria. (C e D intactos.)
                     const existentes = await getDocs(query(collection(db, 'pontuacoes'),
                         where('participantId', '==', part.id), where('date', '==', date)));
@@ -2757,6 +2835,7 @@
                             volumeVendido: payload.volumeVendido || 0,
                             volumeAvarias: payload.volumeAvarias || 0,
                             qtdClientes: payload.qtdClientes || 0,
+                            faturamento: payload.faturamento || 0,
                             c: 0, d: 0, notes: 'Importado de relatório HTML',
                             criadoEm: serverTimestamp()
                         });
@@ -2817,7 +2896,8 @@
             e.preventDefault();
             const pid = document.getElementById('scoreParticipant').value;
             const date = document.getElementById('scoreDate').value;
-            // Critérios A e B — dados crus do período em kg (a nota é derivada em enrichScores/calcRanking)
+            // Critérios A e B — dados crus do período em R$/kg (a nota é derivada em enrichScores/calcRanking)
+            const faturamento = parseFloat(document.getElementById('scoreFat').value) || 0;
             const volumeVendido = parseFloat(document.getElementById('scoreVol').value) || 0;
             const volumeAvarias = parseFloat(document.getElementById('scoreAvarias').value) || 0;
             const qtdClientes = parseInt(document.getElementById('scoreClientes').value) || 0;
@@ -2829,7 +2909,7 @@
             if (btn) { btn.disabled = true; }
             try {
                 await authReady;
-                const payload = { participantId: pid, date, c, d, notes, volumeVendido, volumeAvarias, qtdClientes };
+                const payload = { participantId: pid, date, c, d, notes, faturamento, volumeVendido, volumeAvarias, qtdClientes };
                 if (editingScoreId) {
                     // Edição: atualiza o lançamento existente (não mexe em criadoEm).
                     await updateDoc(doc(db, 'pontuacoes', editingScoreId), payload);
@@ -2855,6 +2935,7 @@
             editingScoreId = id;
             document.getElementById('scoreParticipant').value = s.participantId;
             document.getElementById('scoreDate').value = s.date;
+            document.getElementById('scoreFat').value = s.faturamento || 0;
             document.getElementById('scoreVol').value = s.volumeVendido || 0;
             document.getElementById('scoreAvarias').value = s.volumeAvarias || 0;
             document.getElementById('scoreClientes').value = s.qtdClientes || 0;
@@ -2922,7 +3003,7 @@
                         <div class="activity-ico"><i class="fas fa-chart-bar"></i></div>
                         <div class="activity-body">
                             <p><strong>${p ? p.name : '?'}</strong> — A:${s.a} B:${s.bNA ? '—' : s.b} <strong style="color:var(--orange)">C:${s.c}</strong> D:${s.d}</p>
-                            ${s.volumeVendido ? `<p style="color:#888;font-size:0.82rem">Vendido ${fmtKg(s.volumeVendido)} · Avaria ${fmtKg(s.volumeAvarias)} (${(s.avariaPct * 100).toFixed(1).replace('.', ',')}%) · ${s.qtdClientes} cliente(s) · ${fmtKg(s.volPorCliente)}/cliente</p>` : ''}
+                            ${s.volumeVendido ? `<p style="color:#888;font-size:0.82rem">${s.faturamento ? fmtRS(s.faturamento) + ' · ' : ''}Vendido ${fmtKg(s.volumeVendido)}${s.faturamento ? ' · Ticket ' + fmtTicket(s.ticketMes) : ''} · Avaria ${fmtKg(s.volumeAvarias)} (${(s.avariaPct * 100).toFixed(1).replace('.', ',')}%) · ${s.qtdClientes} cliente(s) · ${fmtKg(s.volPorCliente)}/cliente</p>` : ''}
                             ${s.notes ? `<p style="color:#888;font-size:0.82rem">${s.notes}</p>` : ''}
                             <div class="activity-time">${s.date}</div>
                         </div>

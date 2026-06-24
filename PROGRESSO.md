@@ -47,9 +47,9 @@ Página única `index.html` (HTML + CSS + JS num único `<script type="module">`
 - Seleção manual de participante só onde faz sentido: **Registrar pontuação** e telas pessoais do vendedor (Meu Ranking / O Que Cumprir / Minha Evolução).
 
 ### Critérios (`calcRanking()` + `enrichScores()`)
-Captura por período (kg + clientes): **Volume vendido (kg)**, **Volume de avarias (kg)** (perda+bonif+devol) e **Qtd. de clientes**. Pesos editáveis no topo (`PESO_A/B/C/D`, default 1).
+Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendido (kg)**, **Volume de avarias (kg)** (perda+bonif+devol) e **Qtd. de clientes**. Pesos editáveis no topo (`PESO_A/B/C/D`, default 1). Campo `faturamento` agora é persistido em `pontuacoes` (antes era lido do HTML e descartado).
 - **A) Trocas e Avarias** (menor = melhor): `avaria_% = volume_avarias / volume_vendido`; `nota = 100 - avaria_%*100*AVARIA_PTS_POR_PCT` (default 5 → 4% = 80, 20% = 0). Usa o período mais recente do vendedor.
-- **B) Vendas Positivo** (crescimento, maior = melhor): `cresc_% = (vol_atual - vol_anterior)/vol_anterior` vs o **próprio período anterior**; `nota = CRESC_NOTA_BASE + cresc_%*CRESC_PTS_POR_PCT` (50 base, 2,5 pt/% → +20% = 100, manter = 50, -20% = 0). Sem período anterior → **"—" (sem nota, não pontua)**.
+- **B) Vendas Positivo** (crescimento do **TICKET MÉDIO mensal**, maior = melhor): `ticket_mês = faturamento_R$ / volume_kg` (agregado por mês-calendário `YYYY-MM`, somando todos os lançamentos do mês); `cresc_% = (ticket_atual - ticket_anterior)/ticket_anterior` vs o **próprio mês anterior** com ticket válido; `nota = CRESC_NOTA_BASE + cresc_%*CRESC_PTS_POR_PCT` (50 base, 2,5 pt/% → +20% = 100, manter = 50, -20% = 0). Sem mês anterior → **"—" (sem nota, não pontua)**. Premia valor agregado (R$/kg), não volume bruto. Filtrar "Critério B" no ranking admin ordena pelo **% bruto** (maior→menor), desempate por maior ticket. Validado com exemplo Danylo: 05/2026 R$5,07/kg → 06/2026 R$4,71/kg = −7,1%, nota 32,1.
 - **C) Precedente Positivo** → `sc = min(100, avgC*5)*PESO_C` (lógica original, média 30 dias).
 - **D) Consulta de Preço** → `sd = min(100, avgD*1.5)*PESO_D` (lógica original, média 30 dias).
 - **Métrica de apoio exibida:** `volume_por_cliente = volume_vendido / qtd_clientes`.
@@ -65,6 +65,7 @@ Captura por período (kg + clientes): **Volume vendido (kg)**, **Volume de avari
 - Logo da empresa (`adb.png`, transparente, otimizada 15MB→66KB / 400×161px) no **cabeçalho verde** (`.header-logo-img`, ~44px) e nas **3 telas de acesso** (`.auth-logo-img`, ~200px largura, responsiva).
 
 ## Histórico recente (mais recente em cima)
+- (atual) feat: critério B = crescimento do TICKET MÉDIO mensal (R$/kg); persiste faturamento; campo R$ no Registrar + preview; ticket atual←anterior e % colorido no ranking; filtro B ordena por % bruto
 - `1c64b9b` fix: reset limpa participantes e sincroniza; ranking automatico (fonte única `syncParticipantSelects`)
 - `6600d69` feat: apagar todos os registros / reset de teste
 - `fb47653` feat: importar HTML, somente unidade Parauapebas
@@ -81,8 +82,9 @@ Captura por período (kg + clientes): **Volume vendido (kg)**, **Volume de avari
 ## Pendências / próximos passos
 - [ ] Migrar **documentos e fotos** (hoje em localStorage) para Firebase Storage/Firestore, se quiser que sejam compartilhados.
 - [ ] Conferir/ajustar **regras do Firestore** conforme o uso real (já foram publicadas pelo dono).
-- [ ] Eventual tela de **edição de pontuação** (hoje admin só adiciona; não edita/exclui lançamento individual).
-- [ ] Definir período de avaliação real (hoje o ranking usa "últimos 30 dias" fixo).
+- [x] ~~Edição de pontuação~~ — JÁ EXISTE (`editScore`/`saveScore`/`deleteScore` no histórico do Registrar, botões editar/excluir).
+- [ ] **Dropdown de mês** no ranking de crescimento (ex.: comparar 06/2026 vs 05/2026 manualmente). Hoje o ranking sempre usa o mês mais recente do vendedor automaticamente.
+- [ ] Definir período de avaliação real para C/D (hoje usa "últimos 30 dias" fixo; A usa período mais recente; B agora é mês-calendário).
 - [ ] Decidir o que fazer com `exemplo-relatorio-VENDAS.xlsx` / `exemplo-relatorio-AVARIAS.xlsx` (hoje **não commitados** na pasta): commitar, `.gitignore` ou remover.
 
 ## Notas técnicas para quem retomar
