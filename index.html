@@ -936,6 +936,15 @@
         .activity-body { flex: 1; }
         .activity-body p { font-size: 0.88rem; line-height: 1.4; }
         .activity-time { font-size: 0.75rem; color: #aaa; margin-top: 4px; }
+        .activity-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+        .hist-btn {
+            width: 32px; height: 32px; border: none; border-radius: 9px;
+            cursor: pointer; font-size: 0.8rem; display: flex;
+            align-items: center; justify-content: center; transition: filter .15s;
+        }
+        .hist-btn:hover { filter: brightness(0.92); }
+        .hist-edit { background: #fff4e6; color: var(--orange); }
+        .hist-del { background: #fdeaea; color: var(--red); }
         /* TOAST */
         .toast-stack {
             position: fixed;
@@ -1326,6 +1335,9 @@
                 <button class="nav-btn active" onclick="goTo('adm-ranking')">
                     <i class="fas fa-trophy"></i> Ranking
                 </button>
+                <button class="nav-btn" onclick="goTo('adm-importar')">
+                    <i class="fas fa-file-import"></i> Importar
+                </button>
                 <button class="nav-btn" onclick="goTo('adm-registrar')">
                     <i class="fas fa-plus-circle"></i> Registrar
                 </button>
@@ -1542,11 +1554,12 @@
             <!-- ═══════════════════════════════════════════
                  ADMIN: REGISTRAR
             ═══════════════════════════════════════════ -->
-            <section class="section" id="adm-registrar">
+            <!-- IMPORTAR RELATÓRIOS — fluxo automático em lote, em aba própria (sem nenhum campo do formScore) -->
+            <section class="section" id="adm-importar">
                 <div class="card">
-                    <div class="card-title"><i class="fas fa-file-import"></i> Importação em lote — relatório único HTML</div>
+                    <div class="card-title"><i class="fas fa-file-import"></i> Importar relatórios (em lote)</div>
                     <p style="font-size:0.84rem; color:var(--gray-dark); margin-bottom:14px;">
-                        Envie o <strong>relatório único em HTML</strong> (com todos os vendedores). O sistema importa <strong>somente a unidade Parauapebas (PA matriz)</strong> — vendedores de outras unidades são ignorados —, separa por vendedor, associa cada um ao seu cadastro (criando quem ainda não existe) e mostra um resumo para você conferir <strong>antes de confirmar</strong>.
+                        Envie o <strong>relatório único em HTML</strong> (com todos os vendedores). O sistema importa <strong>somente a unidade Parauapebas (PA matriz)</strong> — vendedores de outras unidades são ignorados —, separa por vendedor, associa cada um ao seu cadastro (criando quem ainda não existe) e mostra um resumo para você conferir <strong>antes de confirmar</strong>. É 100% automático: não precisa selecionar ninguém nem preencher campos.
                     </p>
                     <div class="form-group" style="max-width:260px; margin-bottom:14px;">
                         <label>Período (data de referência)</label>
@@ -1569,8 +1582,14 @@
                         <i class="fas fa-cloud-upload-alt"></i> Confirmar importação
                     </button>
                 </div>
+            </section>
+            <!-- REGISTRAR PONTUAÇÃO INDIVIDUAL — ferramenta opcional de ajuste manual (formScore com required) -->
+            <section class="section" id="adm-registrar">
                 <div class="card">
                     <div class="card-title"><i class="fas fa-plus-circle"></i> Registrar Pontuação (individual)</div>
+                    <p style="font-size:0.82rem; color:var(--gray-dark); margin:-4px 0 14px;">
+                        Use só para <strong>ajustar um vendedor manualmente</strong>. Para lançar todo mundo de uma vez, use a aba <strong>Importar</strong>.
+                    </p>
                     <form id="formScore" onsubmit="saveScore(event)">
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 14px;">
                             <div class="form-group">
@@ -1620,9 +1639,17 @@
                             <label>Observações</label>
                             <textarea id="scoreNotes" rows="3" placeholder="Detalhes..." style="width: 100%; padding: 14px; border: 2px solid #e8e8e8; border-radius: 12px; font-family: 'Montserrat';"></textarea>
                         </div>
-                        <button type="submit" class="auth-btn" style="margin-top: 10px;">
-                            <i class="fas fa-save"></i> Salvar Registro
-                        </button>
+                        <div id="editScoreBanner" style="display:none; margin-top:10px; padding:10px 14px; background:#fff4e6; border:1px solid var(--orange); border-radius:12px; font-size:0.82rem; color:var(--gray-dark); font-weight:600;">
+                            <i class="fas fa-pen"></i> Editando um registro existente. Salvar vai <strong>atualizar</strong> esse lançamento, não criar outro.
+                        </div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+                            <button type="submit" id="btnSaveScore" class="auth-btn" style="flex:1; min-width:180px;">
+                                <i class="fas fa-save"></i> Salvar Registro
+                            </button>
+                            <button type="button" id="btnCancelEdit" onclick="cancelEditScore()" class="auth-btn" style="display:none; flex:0 0 auto; background:var(--gray-dark);">
+                                <i class="fas fa-times"></i> Cancelar edição
+                            </button>
+                        </div>
                     </form>
                 </div>
                 <div class="card">
@@ -2129,13 +2156,14 @@
             window.scrollTo(0, 0);
             // Recarrega dados compartilhados antes de renderizar seções que dependem deles
             const precisaDados = ['meu-ranking', 'o-que-cumprir', 'minha-evolucao', 'ranking-geral',
-                'adm-ranking', 'adm-registrar', 'adm-participantes', 'adm-solicitacoes', 'adm-evolucao'];
+                'adm-ranking', 'adm-importar', 'adm-registrar', 'adm-participantes', 'adm-solicitacoes', 'adm-evolucao'];
             if (precisaDados.includes(sectionId)) await refreshAll();
             if (sectionId === 'meu-ranking') loadMeuRanking();
             if (sectionId === 'o-que-cumprir') loadOQueCumprir();
             if (sectionId === 'minha-evolucao') loadMinhaEvolucao();
             if (sectionId === 'ranking-geral') loadRankingGeral();
             if (sectionId === 'adm-ranking') loadAdmRanking();
+            if (sectionId === 'adm-importar') initImportar();
             if (sectionId === 'adm-registrar') initRegistrar();
             if (sectionId === 'adm-participantes') loadAdmParticipants();
             if (sectionId === 'adm-solicitacoes') loadAdmPending();
@@ -2428,14 +2456,18 @@
             // O dropdown de participante é populado pela fonte única (refreshAll → syncParticipantSelects).
             syncParticipantSelects();
             document.getElementById('scoreDate').valueAsDate = new Date();
-            const bd = document.getElementById('batchDate');
-            if (bd && !bd.value) bd.valueAsDate = new Date();
-            renderBatchPreview();
             preencherUltimoPrecedente();
             calcVolumePreview();
             loadAdminHistory();
         }
         window.initRegistrar = initRegistrar;
+        // Aba Importar (lote): só prepara a data de referência e a prévia. Não toca no formScore.
+        function initImportar() {
+            const bd = document.getElementById('batchDate');
+            if (bd && !bd.value) bd.valueAsDate = new Date();
+            renderBatchPreview();
+        }
+        window.initImportar = initImportar;
         // Ao escolher o vendedor, traz o nº de Precedentes do último registro dele (editável).
         function preencherUltimoPrecedente() {
             const pid = document.getElementById('scoreParticipant').value;
@@ -2779,6 +2811,8 @@
             confirmarImportacaoLote();
         }
         window.resolverConflitosEImportar = resolverConflitosEImportar;
+        // Id do registro em edição (null = criando um novo). Controla se saveScore faz update ou add.
+        let editingScoreId = null;
         async function saveScore(e) {
             e.preventDefault();
             const pid = document.getElementById('scoreParticipant').value;
@@ -2795,18 +2829,17 @@
             if (btn) { btn.disabled = true; }
             try {
                 await authReady;
-                await addDoc(collection(db, 'pontuacoes'), {
-                    participantId: pid, date, c, d, notes,
-                    volumeVendido, volumeAvarias, qtdClientes,
-                    criadoEm: serverTimestamp()
-                });
+                const payload = { participantId: pid, date, c, d, notes, volumeVendido, volumeAvarias, qtdClientes };
+                if (editingScoreId) {
+                    // Edição: atualiza o lançamento existente (não mexe em criadoEm).
+                    await updateDoc(doc(db, 'pontuacoes', editingScoreId), payload);
+                } else {
+                    await addDoc(collection(db, 'pontuacoes'), { ...payload, criadoEm: serverTimestamp() });
+                }
                 await refreshScores();
-                toast('Registrado!', 'Pontuação salva com sucesso.', 'success');
-                e.target.reset();
-                document.getElementById('scoreDate').valueAsDate = new Date();
-                preencherUltimoPrecedente();
-                calcVolumePreview();
-                loadAdminHistory();
+                toast(editingScoreId ? 'Atualizado!' : 'Registrado!', editingScoreId ? 'Lançamento atualizado com sucesso.' : 'Pontuação salva com sucesso.', 'success');
+                cancelEditScore();              // sai do modo edição e reseta o form
+                if (typeof loadAdmRanking === 'function') loadAdmRanking();
             } catch (err) {
                 console.error(err);
                 toast('Erro', 'Não foi possível salvar a pontuação.', 'error');
@@ -2815,6 +2848,65 @@
             }
         }
         window.saveScore = saveScore;
+        // Carrega um registro existente no formulário e entra em modo edição.
+        function editScore(id) {
+            const s = getScores().find(x => x.id === id);
+            if (!s) { toast('Ops', 'Registro não encontrado.', 'warning'); return; }
+            editingScoreId = id;
+            document.getElementById('scoreParticipant').value = s.participantId;
+            document.getElementById('scoreDate').value = s.date;
+            document.getElementById('scoreVol').value = s.volumeVendido || 0;
+            document.getElementById('scoreAvarias').value = s.volumeAvarias || 0;
+            document.getElementById('scoreClientes').value = s.qtdClientes || 0;
+            document.getElementById('scoreC').value = s.c || 0;
+            document.getElementById('scoreD').value = s.d || 0;
+            document.getElementById('scoreNotes').value = s.notes || '';
+            document.getElementById('editScoreBanner').style.display = 'block';
+            document.getElementById('btnCancelEdit').style.display = 'inline-flex';
+            const btn = document.getElementById('btnSaveScore');
+            if (btn) btn.innerHTML = '<i class="fas fa-save"></i> Salvar alterações';
+            const hint = document.getElementById('precedenteHint');
+            if (hint) hint.style.display = 'none';
+            calcVolumePreview();
+            document.getElementById('formScore').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        window.editScore = editScore;
+        // Sai do modo edição e devolve o formulário ao estado "novo registro".
+        function cancelEditScore() {
+            editingScoreId = null;
+            const form = document.getElementById('formScore');
+            if (form) form.reset();
+            document.getElementById('scoreDate').valueAsDate = new Date();
+            document.getElementById('editScoreBanner').style.display = 'none';
+            document.getElementById('btnCancelEdit').style.display = 'none';
+            const btn = document.getElementById('btnSaveScore');
+            if (btn) btn.innerHTML = '<i class="fas fa-save"></i> Salvar Registro';
+            preencherUltimoPrecedente();
+            calcVolumePreview();
+            loadAdminHistory();
+        }
+        window.cancelEditScore = cancelEditScore;
+        // Exclui um lançamento individual (com confirmação).
+        async function deleteScore(id) {
+            if (!isAdminSession) return;
+            const s = getScores().find(x => x.id === id);
+            const p = s ? (getParticipants() || []).find(x => x.id === s.participantId) : null;
+            const quem = p ? p.name : 'este vendedor';
+            if (!confirm(`Excluir o lançamento de ${quem} (${s ? s.date : ''})? Essa ação não pode ser desfeita.`)) return;
+            try {
+                await authReady;
+                await fbDeleteDoc(doc(db, 'pontuacoes', id));
+                if (editingScoreId === id) cancelEditScore();   // se estava editando esse, sai do modo edição
+                await refreshScores();
+                loadAdminHistory();
+                if (typeof loadAdmRanking === 'function') loadAdmRanking();
+                toast('Excluído', 'Lançamento removido.', 'info');
+            } catch (err) {
+                console.error(err);
+                toast('Erro', 'Não foi possível excluir o lançamento.', 'error');
+            }
+        }
+        window.deleteScore = deleteScore;
         function loadAdminHistory() {
             const scores = getScores().slice().sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
             const parts = getParticipants() || [];
@@ -2833,6 +2925,10 @@
                             ${s.volumeVendido ? `<p style="color:#888;font-size:0.82rem">Vendido ${fmtKg(s.volumeVendido)} · Avaria ${fmtKg(s.volumeAvarias)} (${(s.avariaPct * 100).toFixed(1).replace('.', ',')}%) · ${s.qtdClientes} cliente(s) · ${fmtKg(s.volPorCliente)}/cliente</p>` : ''}
                             ${s.notes ? `<p style="color:#888;font-size:0.82rem">${s.notes}</p>` : ''}
                             <div class="activity-time">${s.date}</div>
+                        </div>
+                        <div class="activity-actions">
+                            <button type="button" class="hist-btn hist-edit" title="Editar" onclick="editScore('${s.id}')"><i class="fas fa-pen"></i></button>
+                            <button type="button" class="hist-btn hist-del" title="Excluir" onclick="deleteScore('${s.id}')"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
                 `;
