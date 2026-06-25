@@ -732,18 +732,21 @@
             border: 3px solid;
             position: relative;
         }
-        .podium-slot:nth-child(1) .podium-ava {
-            width: 90px; height: 90px; font-size: 1.6rem;
+        /* Tamanho/cor seguem a COLOCAÇÃO (pos-1/2/3), não a posição no DOM. */
+        .podium-slot.pos-1 .podium-ava {
+            width: 96px; height: 96px; font-size: 1.7rem;
             background: linear-gradient(135deg, #ffd700, #ffed4a);
             border-color: #ffd700;
             color: var(--black);
-            box-shadow: 0 0 25px rgba(255,215,0,0.3);
+            box-shadow: 0 0 30px rgba(255,215,0,0.55);
         }
-        .podium-slot:nth-child(2) .podium-ava {
+        .podium-slot.pos-2 .podium-ava {
+            width: 74px; height: 74px;
             background: linear-gradient(135deg, #c0c0c0, #e8e8e8);
             border-color: #c0c0c0; color: var(--black);
         }
-        .podium-slot:nth-child(3) .podium-ava {
+        .podium-slot.pos-3 .podium-ava {
+            width: 62px; height: 62px;
             background: linear-gradient(135deg, #cd7f32, #daa520);
             border-color: #cd7f32;
         }
@@ -766,18 +769,19 @@
             font-weight: 900;
             font-size: 1.3rem;
         }
-        .podium-slot:nth-child(1) .podium-base {
-            height: 85px;
+        .podium-slot.pos-1 .podium-base {
+            height: 95px; width: 124px;
             background: linear-gradient(135deg, #ffd700, #ffed4a);
-            color: var(--black); width: 120px;
+            color: var(--black);
+            box-shadow: 0 -4px 18px rgba(255,215,0,0.35);
         }
-        .podium-slot:nth-child(2) .podium-base {
-            height: 60px;
+        .podium-slot.pos-2 .podium-base {
+            height: 62px;
             background: linear-gradient(135deg, #c0c0c0, #e8e8e8);
             color: var(--black);
         }
-        .podium-slot:nth-child(3) .podium-base {
-            height: 45px;
+        .podium-slot.pos-3 .podium-base {
+            height: 44px;
             background: linear-gradient(135deg, #cd7f32, #daa520);
         }
         /* FILTER */
@@ -1746,9 +1750,14 @@
                         </label>
                     </div>
                     <div id="batchPreview"></div>
-                    <button type="button" class="auth-btn" id="batchConfirmBtn" onclick="confirmarImportacaoLote()" style="margin-top:14px; display:none;">
-                        <i class="fas fa-cloud-upload-alt"></i> Confirmar importação
-                    </button>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+                        <button type="button" class="auth-btn" id="batchConfirmBtn" onclick="confirmarImportacaoLote()" style="display:none; flex:0 0 auto;">
+                            <i class="fas fa-cloud-upload-alt"></i> Confirmar importação
+                        </button>
+                        <button type="button" id="batchCancelBtn" onclick="cancelarImportacaoLote()" style="display:none; flex:0 0 auto; padding:14px 22px; border:2px solid #f0c0c0; background:#fdeded; color:#c0392b; font-family:'Montserrat'; font-weight:800; border-radius:14px; cursor:pointer;">
+                            <i class="fas fa-times-circle"></i> Cancelar importação
+                        </button>
+                    </div>
                 </div>
             </section>
             <!-- ═══════════════════════════════════════════
@@ -2635,7 +2644,7 @@
                 const p = top3[i];
                 if (!p) return '';
                 return `
-                    <div class="podium-slot">
+                    <div class="podium-slot pos-${i + 1}">
                         ${i === 0 ? '<div class="podium-crown">👑</div>' : ''}
                         <div class="podium-ava">${p.avatar}</div>
                         <div class="podium-nm">${p.name}</div>
@@ -2726,7 +2735,7 @@
                 const p = top3[i];
                 if (!p) return '';
                 return `
-                    <div class="podium-slot">
+                    <div class="podium-slot pos-${i + 1}">
                         ${i === 0 ? '<div class="podium-crown">👑</div>' : ''}
                         <div class="podium-ava">${p.avatar}</div>
                         <div class="podium-nm">${p.name}</div>
@@ -2943,7 +2952,7 @@
             const a = document.getElementById('batchAvariasName');
             if (v) v.textContent = 'Clique para enviar';
             if (a) a.textContent = 'Clique para enviar';
-            document.querySelectorAll('#adm-registrar .xlsx-import.ok').forEach(el => {
+            document.querySelectorAll('#adm-importar .xlsx-import.ok').forEach(el => {
                 if (el.querySelector('input[onchange*="HTML"]')) el.classList.remove('ok');
             });
             renderBatchPreview();
@@ -3080,11 +3089,13 @@
         function renderBatchPreview() {
             const wrap = document.getElementById('batchPreview');
             const btn = document.getElementById('batchConfirmBtn');
+            const btnCancel = document.getElementById('batchCancelBtn');
             if (!wrap) return;
             const entries = Object.values(batchStaging);
             if (!entries.length) {
                 wrap.innerHTML = '';
                 if (btn) btn.style.display = 'none';
+                if (btnCancel) btnCancel.style.display = 'none';
                 return;
             }
             const parts = getParticipants() || [];
@@ -3121,8 +3132,16 @@
                 <p style="font-size:0.8rem; color:var(--gray-dark); margin-top:10px;">${entries.length} vendedor(es) no relatório. Confira os valores e clique em <strong>Confirmar importação</strong> para salvar no período <strong>${document.getElementById('batchDate').value || '(defina a data)'}</strong>.</p>
             `;
             if (btn) btn.style.display = 'inline-flex';
+            if (btnCancel) btnCancel.style.display = 'inline-flex';
         }
         window.renderBatchPreview = renderBatchPreview;
+        // Descarta a prévia importada sem salvar nada no Firestore.
+        function cancelarImportacaoLote() {
+            if (!Object.keys(batchStaging).length) return;
+            limparBatch(); // limpa staging + esconde prévia e botões
+            toast('Importação cancelada', 'A prévia foi descartada. Nada foi salvo.', 'info');
+        }
+        window.cancelarImportacaoLote = cancelarImportacaoLote;
         async function confirmarImportacaoLote() {
             const date = document.getElementById('batchDate').value;
             const entries = Object.values(batchStaging);
