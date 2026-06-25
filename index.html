@@ -603,7 +603,6 @@
         .criteria-icon.a { background: var(--green); color: var(--white); }
         .criteria-icon.b { background: var(--yellow); color: var(--black); }
         .criteria-icon.c { background: var(--orange); color: var(--white); }
-        .criteria-icon.d { background: var(--green-dark); color: var(--white); }
         .criteria-body { flex: 1; }
         .criteria-name { font-weight: 800; font-size: 0.95rem; margin-bottom: 3px; }
         .criteria-desc { font-size: 0.85rem; color: var(--gray-dark); line-height: 1.4; margin-bottom: 8px; }
@@ -613,7 +612,6 @@
         .criteria-bar-fill.a { background: var(--green); }
         .criteria-bar-fill.b { background: var(--yellow); }
         .criteria-bar-fill.c { background: var(--orange); }
-        .criteria-bar-fill.d { background: var(--green-dark); }
         .criteria-score { font-weight: 800; font-size: 0.85rem; min-width: 45px; text-align: right; }
         /* EXPLAIN CARDS */
         .explain-grid {
@@ -631,7 +629,6 @@
         .explain-card.a { border-top-color: var(--green); }
         .explain-card.b { border-top-color: var(--yellow); }
         .explain-card.c { border-top-color: var(--orange); }
-        .explain-card.d { border-top-color: var(--green-dark); }
         .explain-emoji { font-size: 2.5rem; margin-bottom: 12px; display: block; }
         .explain-card h3 {
             font-weight: 800;
@@ -651,7 +648,6 @@
         .explain-card.a .explain-badge { background: var(--green); }
         .explain-card.b .explain-badge { background: var(--yellow); color: var(--black); }
         .explain-card.c .explain-badge { background: var(--orange); }
-        .explain-card.d .explain-badge { background: var(--green-dark); }
         .explain-card p { font-size: 0.9rem; color: var(--gray-dark); line-height: 1.5; }
         .explain-analogy {
             margin-top: 14px;
@@ -899,7 +895,6 @@
         }
         .input-group.b { border-left-color: var(--yellow); }
         .input-group.c { border-left-color: var(--orange); }
-        .input-group.d { border-left-color: var(--green-dark); }
         .input-group label {
             font-weight: 700;
             font-size: 0.8rem;
@@ -1452,7 +1447,7 @@
                         </div>
                         <div class="tip">
                             <i class="fas fa-lightbulb"></i>
-                            <p><strong>Dica:</strong> Domine os 4 critérios para levar a Boombox pra casa! Foque no critério com menor pontuação.</p>
+                            <p><strong>Dica:</strong> Domine os 3 critérios para levar a Boombox pra casa! Foque no critério com menor pontuação.</p>
                         </div>
                     </div>
                     <div class="precedent-box">
@@ -1603,12 +1598,12 @@
                 <div class="card" style="border-left:6px solid var(--green);">
                     <div class="card-title"><i class="fas fa-circle-question"></i> Como funciona a pontuação</div>
                     <p style="font-size:0.92rem; color:var(--gray-dark); line-height:1.6;">
-                        O ranking tem <strong>4 critérios: A, B, C e D</strong>. Cada critério vira uma
-                        <strong>NOTA de 0 a 100</strong>. O <strong>Total</strong> é a soma das 4 notas
-                        (peso 1 cada) — então o máximo possível é <strong>400 pontos</strong>.
+                        O ranking tem <strong>3 critérios: A, B e C</strong>. Cada critério vira uma
+                        <strong>NOTA de 0 a 100</strong>. O <strong>Total</strong> é a soma das 3 notas
+                        (peso 1 cada) — então o máximo possível é <strong>300 pontos</strong>.
                     </p>
                     <div style="background:#fff3cd; border:2px solid var(--yellow); border-radius:12px; padding:14px 16px; margin:14px 0; font-size:0.9rem; line-height:1.5;">
-                        ⚠️ <strong>Atenção:</strong> o número em cada coluna (A, B, C, D) é a <strong>NOTA</strong>,
+                        ⚠️ <strong>Atenção:</strong> o número em cada coluna (A, B, C) é a <strong>NOTA</strong>,
                         <u>não</u> a quantidade. Exemplo: <strong>“A = 100”</strong> significa <strong>nota máxima por ter ZERO avaria</strong> —
                         e não “100 avarias”. Quanto <em>maior</em> a nota, <em>melhor</em>.
                     </div>
@@ -1981,7 +1976,6 @@
                     qtdClientes: Number(x.qtdClientes) || 0,
                     faturamento: Number(x.faturamento) || 0, // R$ do período — ticket médio = faturamento/volume
                     c: Number(x.c) || 0,
-                    d: Number(x.d) || 0,
                     notes: x.notes || ''
                 };
             });
@@ -3053,7 +3047,7 @@
                     if (e.qtdClientes != null) payload.qtdClientes = e.qtdClientes;
                     if (e.volumeAvarias != null) payload.volumeAvarias = e.volumeAvarias;
                     if (e.faturamento) payload.faturamento = parseNum(e.faturamento); // R$ → ticket médio
-                    // Já existe lançamento do vendedor nesse período? Atualiza; senão cria. (C e D intactos.)
+                    // Já existe lançamento do vendedor nesse período? Atualiza; senão cria. (C intacto.)
                     const existentes = await getDocs(query(collection(db, 'pontuacoes'),
                         where('participantId', '==', part.id), where('date', '==', date)));
                     if (!existentes.empty) {
@@ -3066,7 +3060,7 @@
                             volumeAvarias: payload.volumeAvarias || 0,
                             qtdClientes: payload.qtdClientes || 0,
                             faturamento: payload.faturamento || 0,
-                            c: 0, d: 0, notes: 'Importado de relatório HTML',
+                            c: 0, notes: 'Importado de relatório HTML',
                             criadoEm: serverTimestamp()
                         });
                         lancados++;
@@ -3578,7 +3572,7 @@
             const p = parts.find(x => x.id === id);
             if (!p) return;
             const ps = scores.filter(s => s.participantId === id).sort((a, b) => new Date(b.date) - new Date(a.date));
-            const latest = ps[0] || { a: 0, b: 0, bNA: true, c: 0, d: 0 };
+            const latest = ps[0] || { a: 0, b: 0, bNA: true, c: 0 };
             openModal(p.name, `
                 <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
                     <div class="p-avatar" style="width:56px;height:56px;font-size:1.3rem">${p.avatar}</div>
