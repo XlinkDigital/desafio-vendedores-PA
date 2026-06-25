@@ -928,38 +928,6 @@
         .xlsx-import:hover { border-color: var(--green); background: #ddf3e2; }
         .xlsx-import i { color: #1d6f42; font-size: 1.4rem; }
         .xlsx-import.ok { border-style: solid; border-color: var(--green); }
-        /* UPLOAD */
-        .upload-zone {
-            border: 3px dashed #ddd;
-            border-radius: 16px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: #fafafa;
-        }
-        .upload-zone:hover { border-color: var(--green); background: #f0f9f4; }
-        .upload-zone i { font-size: 2.5rem; color: var(--green); margin-bottom: 12px; }
-        /* GALLERY */
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 12px;
-        }
-        .gallery-item {
-            position: relative;
-            border-radius: 12px;
-            overflow: hidden;
-            aspect-ratio: 1;
-            cursor: pointer;
-        }
-        .gallery-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.3s;
-        }
-        .gallery-item:hover img { transform: scale(1.08); }
         /* ACTIVITY */
         .activity {
             display: flex;
@@ -1166,17 +1134,6 @@
             background: var(--gray);
             border-radius: 12px;
             margin-bottom: 8px;
-        }
-        .doc-row-ico {
-            width: 44px;
-            height: 44px;
-            border-radius: 10px;
-            background: var(--green);
-            color: var(--white);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
         }
         .doc-row-info { flex: 1; }
         .doc-row-info h4 { font-weight: 700; font-size: 0.9rem; }
@@ -1429,12 +1386,6 @@
                 </button>
                 <button class="nav-btn" onclick="goTo('adm-evolucao')">
                     <i class="fas fa-chart-line"></i> Evolução
-                </button>
-                <button class="nav-btn" onclick="goTo('adm-documentos')">
-                    <i class="fas fa-folder-open"></i> Documentos
-                </button>
-                <button class="nav-btn" onclick="goTo('adm-fotos')">
-                    <i class="fas fa-images"></i> Fotos
                 </button>
             </div>
             </nav>
@@ -1923,36 +1874,6 @@
                     </div>
                 </div>
             </section>
-            <!-- ═══════════════════════════════════════════
-                 ADMIN: DOCUMENTOS
-            ═══════════════════════════════════════════ -->
-            <section class="section" id="adm-documentos">
-                <div class="card">
-                    <div class="card-title"><i class="fas fa-folder-open"></i> Documentos</div>
-                    <div class="upload-zone" onclick="document.getElementById('docInput').click()">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <h3 style="font-weight: 700; margin-bottom: 6px;">Clique para enviar</h3>
-                        <p style="color: #888; font-size: 0.85rem;">PDF, Excel, Word</p>
-                    </div>
-                    <input type="file" id="docInput" multiple onchange="uploadDocs(this)" style="display: none;">
-                    <div id="adminDocs" style="margin-top: 16px;"></div>
-                </div>
-            </section>
-            <!-- ═══════════════════════════════════════════
-                 ADMIN: FOTOS
-            ═══════════════════════════════════════════ -->
-            <section class="section" id="adm-fotos">
-                <div class="card">
-                    <div class="card-title"><i class="fas fa-images"></i> Fotos</div>
-                    <div class="upload-zone" onclick="document.getElementById('photoInput').click()">
-                        <i class="fas fa-camera"></i>
-                        <h3 style="font-weight: 700; margin-bottom: 6px;">Adicionar fotos</h3>
-                        <p style="color: #888; font-size: 0.85rem;">JPG, PNG</p>
-                    </div>
-                    <input type="file" id="photoInput" multiple accept="image/*" onchange="uploadPhotos(this)" style="display: none;">
-                    <div class="gallery" id="adminGallery" style="margin-top: 16px;"></div>
-                </div>
-            </section>
         </main>
         </div>
     </div>
@@ -2421,8 +2342,6 @@
             if (sectionId === 'adm-participantes') loadAdmParticipants();
             if (sectionId === 'adm-solicitacoes') loadAdmPending();
             if (sectionId === 'adm-evolucao') initAdminEvo();
-            if (sectionId === 'adm-documentos') loadAdmDocs();
-            if (sectionId === 'adm-fotos') loadAdmPhotos();
             closeSidebar(); // no mobile, fecha o menu ao escolher uma aba
         }
         window.goTo = goTo;
@@ -2503,21 +2422,6 @@
                 };
             });
             return out.sort((a, b) => parseFloat(b.scores.total) - parseFloat(a.scores.total));
-        }
-        // ═══════════════════════════════════════════
-        // LOCAL STORAGE HELPERS
-        // ═══════════════════════════════════════════
-        function getLocal(k) {
-            try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; }
-        }
-        function setLocal(k, v) {
-            localStorage.setItem(k, JSON.stringify(v));
-        }
-        function initLocalData() {
-            // Participantes e pontuações vivem no Firestore (compartilhados).
-            // Aqui só garantimos os buckets locais de documentos e fotos.
-            if (!getLocal('bb_docs')) setLocal('bb_docs', []);
-            if (!getLocal('bb_photos')) setLocal('bb_photos', []);
         }
         // ═══════════════════════════════════════════
         // PARTICIPANT VIEWS
@@ -3626,86 +3530,6 @@
             ]);
         }
         window.renderAdminEvo = renderAdminEvo;
-        function uploadDocs(input) {
-            const files = Array.from(input.files);
-            const docs = getLocal('bb_docs') || [];
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    docs.push({ id: Date.now() + Math.random(), name: file.name, type: file.type, size: file.size, date: new Date().toISOString(), data: e.target.result });
-                    setLocal('bb_docs', docs);
-                    loadAdmDocs();
-                };
-                reader.readAsDataURL(file);
-            });
-            input.value = ''; // permite reenviar o mesmo arquivo em seguida, sem recarregar
-            toast('Enviado!', `${files.length} documento(s) adicionado(s).`, 'success');
-        }
-        window.uploadDocs = uploadDocs;
-        function loadAdmDocs() {
-            const docs = getLocal('bb_docs').sort((a, b) => b.id - a.id);
-            const container = document.getElementById('adminDocs');
-            if (docs.length === 0) { container.innerHTML = '<div class="empty"><i class="fas fa-folder"></i><h3>Nenhum documento</h3></div>'; return; }
-            container.innerHTML = docs.map(d => {
-                const icon = d.type.includes('pdf') ? 'fa-file-pdf' : d.type.includes('excel') || d.type.includes('sheet') ? 'fa-file-excel' : d.type.includes('word') ? 'fa-file-word' : 'fa-file';
-                return `
-                    <div class="doc-row">
-                        <div class="doc-row-ico"><i class="fas ${icon}"></i></div>
-                        <div class="doc-row-info"><h4>${d.name}</h4><p>${(d.size / 1024).toFixed(1)} KB</p></div>
-                        <div class="doc-row-actions">
-                            <button onclick="downloadDoc(${d.id})"><i class="fas fa-download"></i></button>
-                            <button onclick="deleteDoc(${d.id})"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-        window.loadAdmDocs = loadAdmDocs;
-        function downloadDoc(id) {
-            const doc = getLocal('bb_docs').find(d => d.id === id);
-            if (!doc) return;
-            const a = document.createElement('a');
-            a.href = doc.data; a.download = doc.name; a.click();
-        }
-        window.downloadDoc = downloadDoc;
-        function deleteDoc(id) {
-            if (!confirm('Excluir?')) return;
-            setLocal('bb_docs', getLocal('bb_docs').filter(d => d.id !== id));
-            loadAdmDocs();
-        }
-        window.deleteDoc = deleteDoc;
-        function uploadPhotos(input) {
-            const files = Array.from(input.files);
-            const photos = getLocal('bb_photos') || [];
-            files.forEach(file => {
-                if (!file.type.startsWith('image/')) return;
-                const reader = new FileReader();
-                reader.onload = e => {
-                    photos.push({ id: Date.now() + Math.random(), name: file.name, data: e.target.result, date: new Date().toISOString() });
-                    setLocal('bb_photos', photos);
-                    loadAdmPhotos();
-                };
-                reader.readAsDataURL(file);
-            });
-            input.value = ''; // permite reenviar o mesmo arquivo em seguida, sem recarregar
-            toast('Fotos adicionadas!', `${files.length} foto(s) enviada(s).`, 'success');
-        }
-        window.uploadPhotos = uploadPhotos;
-        function loadAdmPhotos() {
-            const photos = getLocal('bb_photos').sort((a, b) => b.id - a.id);
-            const gallery = document.getElementById('adminGallery');
-            if (photos.length === 0) { gallery.innerHTML = '<div class="empty" style="grid-column:1/-1"><i class="fas fa-images"></i><h3>Nenhuma foto</h3></div>'; return; }
-            gallery.innerHTML = photos.map(p => `
-                <div class="gallery-item" onclick="viewPhoto('${p.data}')">
-                    <img src="${p.data}" alt="${p.name}">
-                </div>
-            `).join('');
-        }
-        window.loadAdmPhotos = loadAdmPhotos;
-        function viewPhoto(src) {
-            openModal('Foto', `<img src="${src}" style="width:100%;border-radius:12px">`);
-        }
-        window.viewPhoto = viewPhoto;
         // ═══════════════════════════════════════════
         // CHARTS
         // ═══════════════════════════════════════════
@@ -3837,8 +3661,7 @@
         // ═══════════════════════════════════════════
         // INIT
         // ═══════════════════════════════════════════
-        initLocalData();
-        // Mantém o admin logado mesmo se a página recarregar (uploads, F5, etc.).
+        // Mantém o admin logado mesmo se a página recarregar (F5, etc.).
         restoreAdminSession();
     </script>
 </body>

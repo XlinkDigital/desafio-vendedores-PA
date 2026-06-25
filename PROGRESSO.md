@@ -25,8 +25,8 @@ Página única `index.html` (HTML + CSS + JS num único `<script type="module">`
 - `firebaseConfig` está no código. Login **Anônimo** ativado (só dá contexto pro Firestore; ninguém loga por conta).
 - Coleção **`participantes`**: `{ nome, celular, rota, ativo, status, criadoEm }` (id = docId string).
 - Coleção **`pontuacoes`**: `{ participantId, date, volumeVendido, volumeAvarias, qtdClientes, c, d, notes, criadoEm }`. As notas **A** e **B** NÃO são gravadas — são derivadas em `enrichScores()`/`calcRanking()`.
-- Documentos e fotos ainda ficam em **localStorage** (`bb_docs`, `bb_photos`) — não migrados.
 - `refreshAll()` recarrega participantes+pontuações do Firestore a cada troca de aba **e chama `syncParticipantSelects()`**.
+- **Abas Documentos e Fotos REMOVIDAS** (24/06/2026). Junto saíram: inputs `docInput`/`photoInput`, funções `uploadDocs`/`loadAdmDocs`/`downloadDoc`/`deleteDoc`(local)/`uploadPhotos`/`loadAdmPhotos`/`viewPhoto`, helpers `getLocal`/`setLocal`/`initLocalData`, buckets localStorage `bb_docs`/`bb_photos` e CSS `.upload-zone`/`.gallery*`/`.doc-row-ico`. (Mantidos `.doc-row`/`.doc-row-info`/`.doc-row-actions` — reusados em Participantes/Solicitações — e o import Firestore `deleteDoc as fbDeleteDoc`.)
 
 ### Fonte única de verdade dos seletores (importante)
 - `syncParticipantSelects()` é a **única** função que popula TODOS os dropdowns de participante a partir de `DB.participants`: `scoreParticipant` (Registrar), `selParticipant` (Meu Ranking), `selEvolucao` (Minha Evolução) e `selAdminEvo` (Evolução admin).
@@ -59,7 +59,7 @@ Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendid
 
 ### Telas
 - **Vendedor:** Meu Ranking · O Que Cumprir · Minha Evolução · Ranking Geral.
-- **Admin:** Ranking · **Como funciona** · Importar · **Dados do relatório** · Registrar · Participantes · Solicitações (aprovar/recusar) · Evolução · Documentos · Fotos.
+- **Admin:** Ranking · **Como funciona** · Importar · **Dados do relatório** · Registrar · Participantes · Solicitações (aprovar/recusar) · Evolução.
 - **Como funciona** (`#adm-como-funciona`): página estática explicando que A/B/C/D são NOTAS 0-100 (não quantidade), Total = soma (máx 400). Detalha A (fórmula + tabela 0%→100…20%→0), B (crescimento do ticket médio R$/kg), C (precedentes atendidos → nota), D (consultas de preço → nota).
 - **Dados do relatório** (`#adm-dados`, `loadDadosRelatorio`): lê do Firestore os registros do período selecionado (dropdown `#dadosPeriodo` com as datas existentes) e mostra tabela persistente — Vendedor, Rota, Faturamento, Vendido, Ticket médio, Avarias, Avaria %, Clientes, Vol/cliente. Mesmo formato da prévia de importação.
 - Separação garantida pela nav exibida (vendedor não acessa telas de admin; as 2 novas abas vivem dentro de `#navAdmin`).
@@ -87,7 +87,6 @@ Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendid
 - `a69cabb` feat: Firestore compartilhado + acesso do vendedor por nome+celular com aprovação do gestor
 
 ## Pendências / próximos passos
-- [ ] Migrar **documentos e fotos** (hoje em localStorage) para Firebase Storage/Firestore, se quiser que sejam compartilhados.
 - [ ] Conferir/ajustar **regras do Firestore** conforme o uso real (já foram publicadas pelo dono).
 - [x] ~~Edição de pontuação~~ — JÁ EXISTE (`editScore`/`saveScore`/`deleteScore` no histórico do Registrar, botões editar/excluir).
 - [x] ~~Dropdown de mês no ranking de crescimento~~ — FEITO. Seletor "Mês de referência" na aba Ranking admin (`#rankMonth`); `calcRanking(refMonth)` ranqueia por um mês fixo ('YYYY-MM') ou pelo mês mais recente de cada vendedor (default ''). Com mês escolhido, A/B/C/D usam os lançamentos daquele mês; sem dados no mês → vendedor sem nota. Funções: `mesesDisponiveis`/`popularMesesRanking`/`changeRankMonth`/`fmtMesLabel`.
@@ -101,6 +100,6 @@ Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendid
 - `signInAnonymously` precisa estar habilitado no Firebase Console (já está).
 - **Gráficos:** são SVG/HTML próprios (`renderLineChart`/`renderBarChart`) — NÃO usa Chart.js (único CDN é Font Awesome). Linha: com 1 período só, centraliza o ponto e mostra aviso "É preciso mais de um período"; com 2+ desenha a linha. Barras (`.bar-item`) precisam de `height:100%` no CSS senão o `height:%` do `.bar-fill` colapsa (bug corrigido).
 - **Sessão do admin** persiste em `sessionStorage('bb_admin')`: `loginAdmin` grava, `restoreAdminSession()` (chamado no boot) restaura, `logout` apaga. Se a página recarregar, o admin segue logado.
-- **Uploads** (importar HTML, Documentos, Fotos) limpam `input.value=''` após cada envio → dá pra reenviar o mesmo arquivo sem recarregar. Nenhum input de arquivo está em `<form>` nem chama `location.reload`.
+- **Uploads** (importar HTML) limpam `input.value=''` após cada envio → dá pra reenviar o mesmo arquivo sem recarregar. Nenhum input de arquivo está em `<form>` nem chama `location.reload`.
 - Checagem rápida de sintaxe do JS:
   extrair o conteúdo entre `<script type="module">` e `</script>` e rodar `node --check`.
