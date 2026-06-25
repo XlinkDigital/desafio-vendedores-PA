@@ -95,5 +95,8 @@ Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendid
 - Ids de participantes/pontuações são **strings** (docId do Firestore) — cuidado ao comparar (`===`, sem `parseInt`).
 - **Dropdowns de participante:** sempre passar por `syncParticipantSelects()` (fonte única). Não popular um `<select>` de participante na mão — senão volta o bug de nome em cache.
 - `signInAnonymously` precisa estar habilitado no Firebase Console (já está).
+- **Gráficos:** são SVG/HTML próprios (`renderLineChart`/`renderBarChart`) — NÃO usa Chart.js (único CDN é Font Awesome). Linha: com 1 período só, centraliza o ponto e mostra aviso "É preciso mais de um período"; com 2+ desenha a linha. Barras (`.bar-item`) precisam de `height:100%` no CSS senão o `height:%` do `.bar-fill` colapsa (bug corrigido).
+- **Sessão do admin** persiste em `sessionStorage('bb_admin')`: `loginAdmin` grava, `restoreAdminSession()` (chamado no boot) restaura, `logout` apaga. Se a página recarregar, o admin segue logado.
+- **Uploads** (importar HTML, Documentos, Fotos) limpam `input.value=''` após cada envio → dá pra reenviar o mesmo arquivo sem recarregar. Nenhum input de arquivo está em `<form>` nem chama `location.reload`.
 - Checagem rápida de sintaxe do JS:
   extrair o conteúdo entre `<script type="module">` e `</script>` e rodar `node --check`.

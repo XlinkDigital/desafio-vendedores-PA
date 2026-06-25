@@ -810,6 +810,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: flex-end;
+            height: 100%;            /* necessário p/ o height:% do .bar-fill funcionar */
             gap: 8px;
             max-width: 80px;
         }
@@ -2233,9 +2235,25 @@
             isAdminSession = true;
             currentUser = { displayName: nome, email: null };
             currentUserData = { nome: nome, role: 'admin' };
+            // Persiste a sessão do admin: se a página recarregar (por qualquer motivo,
+            // inclusive durante uploads), ele continua logado e não precisa digitar a chave de novo.
+            try { sessionStorage.setItem('bb_admin', JSON.stringify({ nome })); } catch (_) {}
             entrarApp();
         }
         window.loginAdmin = loginAdmin;
+        // Restaura a sessão do admin a partir do sessionStorage (chamado no boot da página).
+        function restoreAdminSession() {
+            let raw;
+            try { raw = sessionStorage.getItem('bb_admin'); } catch (_) { raw = null; }
+            if (!raw) return false;
+            let nome = 'Gestor';
+            try { nome = (JSON.parse(raw) || {}).nome || 'Gestor'; } catch (_) {}
+            isAdminSession = true;
+            currentUser = { displayName: nome, email: null };
+            currentUserData = { nome, role: 'admin' };
+            entrarApp();
+            return true;
+        }
         // ═══════════════════════════════════════════
         // ENTRAR NO APP
         // ═══════════════════════════════════════════
@@ -2272,6 +2290,7 @@
             isAdminSession = false;
             currentUser = null;
             currentUserData = null;
+            try { sessionStorage.removeItem('bb_admin'); } catch (_) {}
             document.getElementById('app').style.display = 'none';
             perfilSelecionado = null;
             document.querySelectorAll('.profile-card').forEach(c => c.classList.remove('selected'));
@@ -2926,6 +2945,7 @@
                 document.getElementById('batchVendasName').textContent = `${file.name} ✓ (${rows.length})`;
                 input.closest('.xlsx-import').classList.add('ok');
                 renderBatchPreview();
+                input.value = ''; // permite reenviar o mesmo arquivo depois, sem recarregar a página
                 toast('Vendas (HTML) lido!', `${rows.length} vendedor(es) de Parauapebas${ignorados ? ` · ${ignorados} de outra unidade ignorado(s)` : ''}. Confira antes de confirmar.`, 'success');
             } catch (err) {
                 console.error(err);
@@ -2954,6 +2974,7 @@
                 document.getElementById('batchAvariasName').textContent = `${file.name} ✓ (${rows.length})`;
                 input.closest('.xlsx-import').classList.add('ok');
                 renderBatchPreview();
+                input.value = ''; // permite reenviar o mesmo arquivo depois, sem recarregar a página
                 toast('Avarias (HTML) lido!', `${rows.length} vendedor(es) de Parauapebas${ignorados ? ` · ${ignorados} de outra unidade ignorado(s)` : ''}. Confira antes de confirmar.`, 'success');
             } catch (err) {
                 console.error(err);
@@ -3482,14 +3503,14 @@
                 }
             });
             const relevant = pid === 'all' ? Object.values(latest) : [latest[pid]].filter(Boolean);
-            if (relevant.length > 0) {
-                renderBarChart('adminEvoBar', [
-                    { label: 'A', value: Math.round(relevant.reduce((s, x) => s + x.a, 0) / relevant.length), color: '#00a651' },
-                    { label: 'B', value: Math.round(relevant.reduce((s, x) => s + x.b, 0) / relevant.length), color: '#ffc72c' },
-                    { label: 'C', value: Math.round(relevant.reduce((s, x) => s + x.c, 0) / relevant.length), color: '#ff9800' },
-                    { label: 'D', value: Math.round(relevant.reduce((s, x) => s + x.d, 0) / relevant.length), color: '#008c44' }
-                ]);
-            }
+            const media = key => relevant.length ? Math.round(relevant.reduce((s, x) => s + (x[key] || 0), 0) / relevant.length) : 0;
+            // Sempre desenha as 4 notas A/B/C/D (zeros quando ainda não há lançamento).
+            renderBarChart('adminEvoBar', [
+                { label: 'A', value: media('a'), color: '#00a651' },
+                { label: 'B', value: media('b'), color: '#ffc72c' },
+                { label: 'C', value: media('c'), color: '#ff9800' },
+                { label: 'D', value: media('d'), color: '#008c44' }
+            ]);
         }
         window.renderAdminEvo = renderAdminEvo;
         function uploadDocs(input) {
@@ -3504,6 +3525,7 @@
                 };
                 reader.readAsDataURL(file);
             });
+            input.value = ''; // permite reenviar o mesmo arquivo em seguida, sem recarregar
             toast('Enviado!', `${files.length} documento(s) adicionado(s).`, 'success');
         }
         window.uploadDocs = uploadDocs;
@@ -3552,6 +3574,7 @@
                 };
                 reader.readAsDataURL(file);
             });
+            input.value = ''; // permite reenviar o mesmo arquivo em seguida, sem recarregar
             toast('Fotos adicionadas!', `${files.length} foto(s) enviada(s).`, 'success');
         }
         window.uploadPhotos = uploadPhotos;
@@ -3576,19 +3599,24 @@
         function renderLineChart(containerId, series, colors) {
             const container = document.getElementById(containerId);
             const svg = container.querySelector('svg');
-            if (!series.length || !series[0].values.length) {
-                svg.innerHTML = '<text x="400" y="130" text-anchor="middle" fill="#888" font-size="14">Sem dados</text>';
+            // Só séries com pelo menos 1 ponto.
+            const valid = (series || []).filter(s => s && s.values && s.values.length);
+            if (!valid.length) {
+                svg.innerHTML = '<text x="400" y="130" text-anchor="middle" fill="#888" font-size="14">Sem dados ainda. Importe ou registre lançamentos.</text>';
                 return;
             }
             const w = 800, h = 260;
             const pad = { t: 20, r: 30, b: 40, l: 50 };
             const cw = w - pad.l - pad.r;
             const ch = h - pad.t - pad.b;
-            const allVals = series.flatMap(s => s.values);
+            const n = Math.max(...valid.map(s => s.values.length)); // nº de períodos (maior série)
+            const labelsSrc = valid.find(s => s.values.length === n) || valid[0];
+            const allVals = valid.flatMap(s => s.values);
             const maxV = Math.max(...allVals, 50);
             const minV = Math.min(...allVals, 0);
-            const sx = i => pad.l + (i / (series[0].values.length - 1 || 1)) * cw;
-            const sy = v => pad.t + ch - ((v - minV) / (maxV - minV)) * ch;
+            // Com 1 só ponto, centraliza no gráfico (em vez de colar na borda esquerda).
+            const sx = i => n === 1 ? pad.l + cw / 2 : pad.l + (i / (n - 1)) * cw;
+            const sy = v => pad.t + ch - ((v - minV) / ((maxV - minV) || 1)) * ch;
             let html = '';
             for (let i = 0; i <= 4; i++) {
                 const y = pad.t + (i / 4) * ch;
@@ -3596,24 +3624,31 @@
                 html += `<line class="chart-grid" x1="${pad.l}" y1="${y}" x2="${w - pad.r}" y2="${y}"/>`;
                 html += `<text class="chart-axis" x="${pad.l - 8}" y="${y + 4}" text-anchor="end">${Math.round(v)}</text>`;
             }
-            series[0].labels.forEach((l, i) => {
+            labelsSrc.labels.forEach((l, i) => {
                 html += `<text class="chart-axis" x="${sx(i)}" y="${h - 12}" text-anchor="middle">${l}</text>`;
             });
-            series.forEach((ser, si) => {
+            valid.forEach((ser, si) => {
                 const col = colors[si % colors.length];
-                let area = `M ${sx(0)} ${pad.t + ch}`;
-                ser.values.forEach((v, i) => area += ` L ${sx(i)} ${sy(v)}`);
-                area += ` L ${sx(ser.values.length - 1)} ${pad.t + ch} Z`;
-                html += `<path class="chart-area" d="${area}" fill="${col}"/>`;
-                let line = '';
-                ser.values.forEach((v, i) => line += (i === 0 ? 'M' : 'L') + ` ${sx(i)} ${sy(v)}`);
-                html += `<path class="chart-line" d="${line}" stroke="${col}"/>`;
+                // Linha/área só quando há 2+ pontos (com 1 ponto desenhamos só o marcador).
+                if (ser.values.length > 1) {
+                    let area = `M ${sx(0)} ${pad.t + ch}`;
+                    ser.values.forEach((v, i) => area += ` L ${sx(i)} ${sy(v)}`);
+                    area += ` L ${sx(ser.values.length - 1)} ${pad.t + ch} Z`;
+                    html += `<path class="chart-area" d="${area}" fill="${col}"/>`;
+                    let line = '';
+                    ser.values.forEach((v, i) => line += (i === 0 ? 'M' : 'L') + ` ${sx(i)} ${sy(v)}`);
+                    html += `<path class="chart-line" d="${line}" stroke="${col}"/>`;
+                }
                 ser.values.forEach((v, i) => {
                     html += `<circle class="chart-dot" cx="${sx(i)}" cy="${sy(v)}" fill="${col}"
                         onmouseover="showTip(event,'${ser.name}: ${ser.labels[i]}','${v} pts')"
                         onmouseout="hideTip('${containerId}')"/>`;
                 });
             });
+            // Um período só: mostra o ponto atual + aviso (em vez de gráfico aparentemente vazio).
+            if (n === 1) {
+                html += `<text x="400" y="${pad.t + 14}" text-anchor="middle" fill="#b8860b" font-size="13" font-weight="700">É preciso mais de um período para ver a evolução</text>`;
+            }
             svg.innerHTML = html;
         }
         window.renderLineChart = renderLineChart;
@@ -3690,6 +3725,8 @@
         // INIT
         // ═══════════════════════════════════════════
         initLocalData();
+        // Mantém o admin logado mesmo se a página recarregar (uploads, F5, etc.).
+        restoreAdminSession();
     </script>
 </body>
 </html>
