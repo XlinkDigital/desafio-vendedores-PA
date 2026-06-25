@@ -1963,6 +1963,18 @@
         const DB = { participants: [], scores: [] };
         function getParticipants() { return DB.participants; }
         function getScores() { return DB.scores; }
+        // ── ASSISTENTES (não são vendedores): tudo que vendem/fazem conta para o TITULAR ──
+        // Mapa por NOME: assistente → vendedor titular. Para adicionar outro no futuro,
+        // basta uma nova linha aqui (ex.: 'Fulano': 'Beltrano'). Nomes são normalizados.
+        const ASSISTENTES = { 'Mailson': 'Danylo PA' };
+        const ASSIST_TO_TITULAR = {}; // normNome(assistente) -> normNome(titular)
+        const TITULAR_DISPLAY = {};   // normNome(titular)    -> nome de exibição do titular
+        Object.entries(ASSISTENTES).forEach(([a, t]) => {
+            ASSIST_TO_TITULAR[normNome(a)] = normNome(t);
+            TITULAR_DISPLAY[normNome(t)] = t;
+        });
+        function isAssistente(nome) { return !!ASSIST_TO_TITULAR[normNome(nome)]; }
+        function titularDe(nome) { return ASSIST_TO_TITULAR[normNome(nome)] || null; } // normNome do titular
         function initials(nome) {
             return (nome || '?').trim().split(/\s+/).map(n => n[0] || '').join('').toUpperCase().slice(0, 2) || '?';
         }
@@ -2080,7 +2092,7 @@
         // Chamado dentro de refreshAll() → todos os selects ficam sempre sincronizados
         // (e ficam vazios automaticamente após um reset, sem sobrar nome em cache).
         function syncParticipantSelects() {
-            const ativos = (getParticipants() || []).filter(p => p.active && !p.vinculadoA);
+            const ativos = (getParticipants() || []).filter(p => p.active && !p.vinculadoA && !isAssistente(p.name));
             const ids = new Set(ativos.map(p => p.id));
             const opts = ativos.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
             const configs = [
@@ -2113,10 +2125,71 @@
         function updatePendingBadge() {
             const badge = document.getElementById('pendingBadge');
             if (!badge) return;
-            const n = DB.participants.filter(p => p.status === 'pendente').length;
+            const n = DB.participants.filter(p => p.status === 'pendente' && !isAssistente(p.name)).length;
             badge.textContent = n;
             badge.style.display = n > 0 ? 'inline-block' : 'none';
         }
+        // Se um assistente (mapa ASSISTENTES) já existir como participante de importações
+        // anteriores, absorve as pontuações dele no titular (soma por data) e o REMOVE.
+        // Roda 1x por carga, só no admin (faz escrita no Firestore). Idempotente.
+        let _reconcileDone = false;
+        async function reconciliarAssistentes() {
+            if (_reconcileDone) return false;
+            _reconcileDone = true;
+            const assistentes = DB.participants.filter(p => isAssistente(p.name));
+            if (!assistentes.length) return false;
+            try {
+                await authReady;
+                for (const asst of assistentes) {
+                    const titNorm = titularDe(asst.name);
+                    let titular = DB.participants.find(p => normNome(p.name) === titNorm && !isAssistente(p.name));
+                    if (!titular) {
+                        const ref = await addDoc(collection(db, 'participantes'), {
+                            nome: TITULAR_DISPLAY[titNorm] || titNorm, celular: '', rota: '',
+                            ativo: true, status: 'aprovado', criadoEm: serverTimestamp()
+                        });
+                        titular = { id: ref.id, name: TITULAR_DISPLAY[titNorm] || titNorm };
+                        DB.participants.push(titular);
+                    }
+                    const snap = await getDocs(query(collection(db, 'pontuacoes'), where('participantId', '==', asst.id)));
+                    for (const ad of snap.docs) {
+                        const a = ad.data();
+                        const ex = await getDocs(query(collection(db, 'pontuacoes'),
+                            where('participantId', '==', titular.id), where('date', '==', a.date)));
+                        if (!ex.empty) {
+                            const pv = ex.docs[0].data();
+                            await updateDoc(doc(db, 'pontuacoes', ex.docs[0].id), {
+                                volumeVendido: (Number(pv.volumeVendido) || 0) + (Number(a.volumeVendido) || 0),
+                                volumeAvarias: (Number(pv.volumeAvarias) || 0) + (Number(a.volumeAvarias) || 0),
+                                qtdClientes: (Number(pv.qtdClientes) || 0) + (Number(a.qtdClientes) || 0),
+                                faturamento: (Number(pv.faturamento) || 0) + (Number(a.faturamento) || 0),
+                                c: (Number(pv.c) || 0) + (Number(a.c) || 0),
+                                d: (Number(pv.d) || 0) + (Number(a.d) || 0)
+                            });
+                        } else {
+                            await addDoc(collection(db, 'pontuacoes'), {
+                                participantId: titular.id, date: a.date,
+                                volumeVendido: Number(a.volumeVendido) || 0,
+                                volumeAvarias: Number(a.volumeAvarias) || 0,
+                                qtdClientes: Number(a.qtdClientes) || 0,
+                                faturamento: Number(a.faturamento) || 0,
+                                c: Number(a.c) || 0, d: Number(a.d) || 0,
+                                notes: (a.notes ? a.notes + ' ' : '') + `(transferido de ${asst.name})`,
+                                criadoEm: serverTimestamp()
+                            });
+                        }
+                        await fbDeleteDoc(doc(db, 'pontuacoes', ad.id));
+                    }
+                    await fbDeleteDoc(doc(db, 'participantes', asst.id));
+                }
+                await refreshParticipants();
+                await refreshScores();
+                syncParticipantSelects();
+                toast('Assistentes consolidados', 'Lançamentos do assistente foram somados ao titular e ele saiu do ranking.', 'info');
+                return true;
+            } catch (err) { console.error('reconciliarAssistentes', err); return false; }
+        }
+        window.reconciliarAssistentes = reconciliarAssistentes;
         // ═══════════════════════════════════════════
         // UI HELPERS
         // ═══════════════════════════════════════════
@@ -2182,6 +2255,12 @@
             sucesso.classList.remove('show');
             if (celular.length < 10) {
                 erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Informe um celular válido com DDD.</span>';
+                erro.classList.add('show');
+                return;
+            }
+            // Assistente (ex.: Mailson) não tem acesso próprio — as vendas dele contam para o titular.
+            if (isAssistente(nome)) {
+                erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Este nome é de um assistente — as vendas contam para o vendedor titular. Acesse com o nome do titular.</span>';
                 erro.classList.add('show');
                 return;
             }
@@ -2278,6 +2357,8 @@
             document.getElementById('headerName').textContent = currentUserData.nome || currentUser.displayName || 'Usuário';
             document.getElementById('headerRole').textContent = currentUserData.role === 'admin' ? 'ADMIN' : 'VENDEDOR';
             await refreshAll();
+            // Admin: consolida assistentes legados (Mailson→Danylo) antes de mostrar o ranking.
+            if (currentUserData.role === 'admin') { await reconciliarAssistentes(); }
             document.getElementById('dateAdmin').textContent = new Date().toLocaleDateString('pt-BR');
             document.getElementById('dateGeral').textContent = new Date().toLocaleDateString('pt-BR');
             if (currentUserData.role === 'admin') {
@@ -2378,7 +2459,7 @@
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             const emptyScores = () => ({ a: '0.0', b: '—', bNA: true, c: '0.0', d: '0.0', total: '0.0' });
-            const out = participants.filter(p => p.active && !p.vinculadoA).map(p => {
+            const out = participants.filter(p => p.active && !p.vinculadoA && !isAssistente(p.name)).map(p => {
                 // Histórico completo do vendedor, em ordem cronológica (A e B são por período).
                 const hist = scores.filter(s => s.participantId === p.id)
                     .sort((x, y) => new Date(x.date) - new Date(y.date));
@@ -2716,7 +2797,7 @@
             parts.forEach(p => { byId[p.id] = p; });
             const linhas = (getScores() || []).filter(s => s.date === dadosPeriodo)
                 .map(s => ({ s, p: byId[s.participantId] }))
-                .filter(x => x.p) // só de participantes existentes
+                .filter(x => x.p && !isAssistente(x.p.name)) // só de participantes existentes (assistente nunca aparece sozinho)
                 .sort((a, b) => (b.s.volumeVendido || 0) - (a.s.volumeVendido || 0));
             if (!linhas.length) {
                 wrap.innerHTML = '<div class="empty"><i class="fas fa-table"></i><h3>Nenhum dado neste período</h3><p>Importe um relatório ou registre lançamentos.</p></div>';
@@ -3084,7 +3165,11 @@
                 const addNum = (cur, val) => val == null ? cur : (cur == null ? Number(val) : cur + Number(val));
                 const porDestino = {}; // destId -> { volumeVendido, volumeAvarias, qtdClientes, faturamento }
                 for (const e of entries) {
-                    const key = normNome(e.nome);
+                    // Linha de um ASSISTENTE (ex.: Mailson)? Resolve direto para o vendedor
+                    // titular (ex.: Danylo PA) — o assistente nunca é criado nem registrado.
+                    const assist = isAssistente(e.nome);
+                    const nomeEfetivo = assist ? (TITULAR_DISPLAY[titularDe(e.nome)] || e.nome) : e.nome;
+                    const key = normNome(nomeEfetivo);
                     const grupo = groups[key] || [];
                     let part;
                     if (grupo.length >= 2) part = grupo.find(p => p.id === conflictChoices[key]) || null;
@@ -3092,16 +3177,17 @@
                     else part = null;
                     if (!part) {
                         const ref = await addDoc(collection(db, 'participantes'), {
-                            nome: e.nome, celular: '', rota: e.rota || '',
+                            nome: nomeEfetivo, celular: '', rota: assist ? '' : (e.rota || ''),
                             ativo: true, status: 'aprovado', criadoEm: serverTimestamp()
                         });
-                        part = { id: ref.id, name: e.nome };
+                        part = { id: ref.id, name: nomeEfetivo };
                         (groups[key] ||= []).push(part);
                         criados++;
-                    } else if (e.rota) {
+                    } else if (e.rota && !assist) {
+                        // Não sobrescreve a rota do titular com a rota de uma linha de assistente.
                         await updateDoc(doc(db, 'participantes', part.id), { rota: e.rota });
                     }
-                    // Assistente? Tudo que ele vendeu conta para o vendedor principal.
+                    // Compat: participante marcado manualmente como assistente (vinculadoA) também soma no titular.
                     let destId = part.id;
                     if (part.vinculadoA) {
                         const principal = DB.participants.find(x => x.id === part.vinculadoA);
@@ -3318,7 +3404,7 @@
             return p.active ? 'Ativo' : 'Inativo';
         }
         function loadAdmParticipants() {
-            const parts = getParticipants().filter(p => p.status === 'aprovado' || p.status === 'recusado');
+            const parts = getParticipants().filter(p => (p.status === 'aprovado' || p.status === 'recusado') && !isAssistente(p.name));
             const container = document.getElementById('adminParticipants');
             if (parts.length === 0) {
                 container.innerHTML = '<div class="empty"><i class="fas fa-users"></i><h3>Nenhum participante</h3><p>Adicione manualmente ou aprove uma solicitação.</p></div>';
@@ -3532,7 +3618,7 @@
         // ADMIN: SOLICITAÇÕES PENDENTES
         // ═══════════════════════════════════════════
         function loadAdmPending() {
-            const pend = getParticipants().filter(p => p.status === 'pendente');
+            const pend = getParticipants().filter(p => p.status === 'pendente' && !isAssistente(p.name));
             const container = document.getElementById('adminPending');
             if (pend.length === 0) {
                 container.innerHTML = '<div class="empty"><i class="fas fa-check-circle"></i><h3>Nenhuma solicitação</h3><p>Tudo em dia!</p></div>';
