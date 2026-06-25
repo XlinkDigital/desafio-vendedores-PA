@@ -73,17 +73,13 @@ Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendid
 - Logo da empresa (`adb.png`, transparente, otimizada 15MB→66KB / 400×161px) na sidebar, na barra mobile e nas **3 telas de acesso** (`.auth-logo-img`). `.header-btn` ainda é usado em botões de tabela (não remover).
 
 ## Assistentes (vendedor que conta para outro)
-**Mailson é ASSISTENTE do Danylo PA** — não é vendedor, tudo que vende/faz conta para o Danylo e ele não aparece em lugar nenhum.
-
-- **Mapa estático por NOME** (logo após `getScores`): `const ASSISTENTES = { 'Mailson': 'Danylo PA' }`. Para adicionar outro, basta uma linha. Helpers: `ASSIST_TO_TITULAR` (normNome→normNome), `TITULAR_DISPLAY` (normNome→nome), `isAssistente(nome)`, `titularDe(nome)`. (Nomes normalizados por `normNome`, que é hoisted.)
-- **Some de tudo** via `isAssistente(p.name)`: `calcRanking`, `syncParticipantSelects` (seletores), `loadAdmParticipants` (aba Participantes), `loadDadosRelatorio` (Dados do relatório), `loadAdmPending`/badge (Solicitações). Login do vendedor (`acessarVendedor`) bloqueia nome de assistente (não cria pendente).
-- **Importação** (`confirmarImportacaoLote`, 2 fases): linha de assistente é resolvida **direto ao titular** pelo nome (`nomeEfetivo`), o assistente nunca é criado. Fase 1 soma por destino (volume, avarias, clientes, faturamento) — Danylo + Mailson no mesmo relatório viram **um lançamento só** (A e B corretos). Fase 2 grava 1 doc por destino (update-or-create; C/D intactos). Não sobrescreve a rota do titular com a de uma linha de assistente.
-- **Reconciliação automática** (`reconciliarAssistentes`, roda 1x no `entrarApp` do admin): se o Mailson já existir como participante de imports antigos, **transfere e soma** as pontuações dele no Danylo (por data; c/d somados), apaga as pontuações e **remove o participante Mailson**. Idempotente (`_reconcileDone`).
-- **Compat:** ainda existe o campo `vinculadoA` + botão 🔗 `vincularAssistente(id)` na aba Participantes (vínculo manual ad-hoc para casos fora do mapa). Os filtros checam `!p.vinculadoA && !isAssistente(p.name)`.
+- Um participante pode ser **assistente de** um vendedor (campo `vinculadoA` = id do principal em `participantes`). Caso real: **Mailson é assistente do Danylo** — tudo que Mailson vende/faz conta para o Danylo.
+- **Efeitos:** assistente é excluído do ranking (`calcRanking`) e de todos os seletores (`syncParticipantSelects`) via `&& !p.vinculadoA`; fica `ativo:false`.
+- **Importação** (`confirmarImportacaoLote`, reescrita em 2 fases): cada linha é resolvida a um participante; se for assistente, o destino vira o `vinculadoA`. Fase 1 acumula/soma por destino (volume, avarias, clientes, faturamento) — se Danylo e Mailson vierem no mesmo relatório, viram **um lançamento só** (A e B ficam corretos). Fase 2 grava 1 doc por destino (update-or-create; C/D intactos).
+- **Vincular:** botão 🔗 na aba Participantes → `vincularAssistente(id)`: prompt numerado escolhe o vendedor principal; **transfere e soma** as pontuações existentes do assistente para o principal (por data; c/d somados) e apaga as do assistente; selo "Assistente de X" na lista. Mesmo botão remove o vínculo (volta `ativo:true`, NÃO desfaz a transferência).
 
 ## Histórico recente (mais recente em cima)
-- (atual) fix: Mailson assistente do Danylo — mapa estático por nome; soma no titular na importação; some de TODAS as telas; reconciliação automática remove o Mailson legado e joga os números no Danylo
-- `09feb6b` feat: assistente de vendedor (Mailson→Danylo) — fora do ranking, lançamentos somam pro principal na importação + transferência dos registros existentes (1ª versão, por botão manual)
+- (atual) feat: assistente de vendedor (Mailson→Danylo) — fora do ranking, lançamentos somam pro principal na importação + transferência dos registros existentes
 - `2ee6531` feat: critério B = crescimento do TICKET MÉDIO mensal (R$/kg); persiste faturamento; campo R$ no Registrar + preview; ticket atual←anterior e % colorido no ranking; filtro B ordena por % bruto
 - `1c64b9b` fix: reset limpa participantes e sincroniza; ranking automatico (fonte única `syncParticipantSelects`)
 - `6600d69` feat: apagar todos os registros / reset de teste
