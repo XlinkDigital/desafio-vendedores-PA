@@ -48,19 +48,19 @@ Página única `index.html` (HTML + CSS + JS num único `<script type="module">`
 - Seleção manual de participante só onde faz sentido: **Registrar pontuação** e telas pessoais do vendedor (Meu Ranking / O Que Cumprir / Minha Evolução).
 
 ### Critérios (`calcRanking()` + `enrichScores()`)
-Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendido (kg)**, **Volume de avarias (kg)** (perda+bonif+devol) e **Qtd. de clientes**. Pesos editáveis no topo (`PESO_A/B/C/D`, default 1). Campo `faturamento` agora é persistido em `pontuacoes` (antes era lido do HTML e descartado).
+**São 3 critérios: A, B e C.** O critério **D (Consulta de Preço) foi REMOVIDO** em 25/06/2026 — não conta mais. (Saiu do cálculo, do form Registrar, do ranking, das telas e da "Como funciona". O campo `d` ainda existe em docs antigos do Firestore, mas é ignorado — não é lido nem gravado.)
+Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendido (kg)**, **Volume de avarias (kg)** (perda+bonif+devol) e **Qtd. de clientes**. Pesos editáveis no topo (`PESO_A/B/C`, default 1). Campo `faturamento` persistido em `pontuacoes`.
 - **A) Trocas e Avarias** (menor = melhor): `avaria_% = volume_avarias / volume_vendido`; `nota = 100 - avaria_%*100*AVARIA_PTS_POR_PCT` (default 5 → 4% = 80, 20% = 0). Usa o período mais recente do vendedor.
 - **B) Vendas Positivo** (crescimento do **TICKET MÉDIO mensal**, maior = melhor): `ticket_mês = faturamento_R$ / volume_kg` (agregado por mês-calendário `YYYY-MM`, somando todos os lançamentos do mês); `cresc_% = (ticket_atual - ticket_anterior)/ticket_anterior` vs o **próprio mês anterior** com ticket válido; `nota = CRESC_NOTA_BASE + cresc_%*CRESC_PTS_POR_PCT` (50 base, 2,5 pt/% → +20% = 100, manter = 50, -20% = 0). Sem mês anterior → **"—" (sem nota, não pontua)**. Premia valor agregado (R$/kg), não volume bruto. Filtrar "Critério B" no ranking admin ordena pelo **% bruto** (maior→menor), desempate por maior ticket. Validado com exemplo Danylo: 05/2026 R$5,07/kg → 06/2026 R$4,71/kg = −7,1%, nota 32,1.
 - **C) Precedente Positivo** → `sc = min(100, avgC*5)*PESO_C` (lógica original, média 30 dias).
-- **D) Consulta de Preço** → `sd = min(100, avgD*1.5)*PESO_D` (lógica original, média 30 dias).
 - **Métrica de apoio exibida:** `volume_por_cliente = volume_vendido / qtd_clientes`.
-- Total = soma das quatro notas (com peso). Ranking ordenado por total.
+- Total = soma das **três** notas (com peso). **Máx 300.** Ranking ordenado por total. Barra de progresso do vendedor usa `total/300`.
 - **SEM R$/preço** — tudo proporcional em kg, pra ser justo entre portes diferentes.
 
 ### Telas
 - **Vendedor:** Meu Ranking · O Que Cumprir · Minha Evolução · Ranking Geral.
 - **Admin:** Ranking · **Como funciona** · Importar · **Dados do relatório** · Registrar · Participantes · Solicitações (aprovar/recusar) · Evolução.
-- **Como funciona** (`#adm-como-funciona`): página estática explicando que A/B/C/D são NOTAS 0-100 (não quantidade), Total = soma (máx 400). Detalha A (fórmula + tabela 0%→100…20%→0), B (crescimento do ticket médio R$/kg), C (precedentes atendidos → nota), D (consultas de preço → nota).
+- **Como funciona** (`#adm-como-funciona`): página estática explicando que A/B/C são NOTAS 0-100 (não quantidade), Total = soma (máx 300). Detalha A (fórmula + tabela 0%→100…20%→0), B (crescimento do ticket médio R$/kg) e C (precedentes atendidos → nota).
 - **Dados do relatório** (`#adm-dados`, `loadDadosRelatorio`): lê do Firestore os registros do período selecionado (dropdown `#dadosPeriodo` com as datas existentes) e mostra tabela persistente — Vendedor, Rota, Faturamento, Vendido, Ticket médio, Avarias, Avaria %, Clientes, Vol/cliente. Mesmo formato da prévia de importação.
 - Separação garantida pela nav exibida (vendedor não acessa telas de admin; as 2 novas abas vivem dentro de `#navAdmin`).
 
@@ -73,7 +73,9 @@ Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendid
 - Logo da empresa (`adb.png`, transparente, otimizada 15MB→66KB / 400×161px) na sidebar, na barra mobile e nas **3 telas de acesso** (`.auth-logo-img`). `.header-btn` ainda é usado em botões de tabela (não remover).
 
 ## Histórico recente (mais recente em cima)
-- (atual) feat: critério B = crescimento do TICKET MÉDIO mensal (R$/kg); persiste faturamento; campo R$ no Registrar + preview; ticket atual←anterior e % colorido no ranking; filtro B ordena por % bruto
+- (atual) refactor: remover critério D (Consulta de Preço) — agora são 3 critérios (A/B/C), máx 300; saiu do cálculo, form, ranking, telas e "Como funciona"
+- revert do ajuste "assistente/Mailson" (2 commits) — Mailson volta a ser vendedor normal; importação e ranking sem lógica de assistente
+- `2ee6531` feat: critério B = crescimento do TICKET MÉDIO mensal (R$/kg); persiste faturamento; campo R$ no Registrar + preview; ticket atual←anterior e % colorido no ranking; filtro B ordena por % bruto
 - `1c64b9b` fix: reset limpa participantes e sincroniza; ranking automatico (fonte única `syncParticipantSelects`)
 - `6600d69` feat: apagar todos os registros / reset de teste
 - `fb47653` feat: importar HTML, somente unidade Parauapebas

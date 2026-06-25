@@ -1477,7 +1477,7 @@
                     <div class="criteria-list" id="criteriaList"></div>
                 </div>
                 <div class="card">
-                    <div class="card-title"><i class="fas fa-book-open"></i> Entenda os 4 Critérios</div>
+                    <div class="card-title"><i class="fas fa-book-open"></i> Entenda os 3 Critérios</div>
                     <div class="explain-grid">
                         <div class="explain-card a">
                             <span class="explain-emoji">🛡️</span>
@@ -1496,12 +1496,6 @@
                             <h3>Precedente Positivo <span class="explain-badge">C</span></h3>
                             <p>Atendimento às solicitações da diretoria com ajuste de precedente positivo.</p>
                             <div class="explain-analogy">"Atenda os pedidos da diretoria. Quanto mais precedentes positivos, mais pontos."</div>
-                        </div>
-                        <div class="explain-card d">
-                            <span class="explain-emoji">🔍</span>
-                            <h3>Consulta de Preço <span class="explain-badge">D</span></h3>
-                            <p>Maior número de consultas de preço no período.</p>
-                            <div class="explain-analogy">"Prospecção e iniciativa. Quanto mais consultas de preço, melhor."</div>
                         </div>
                     </div>
                 </div>
@@ -1576,7 +1570,6 @@
                         <button class="filter-chip" onclick="filterAdmRanking('a')">Critério A</button>
                         <button class="filter-chip" onclick="filterAdmRanking('b')">Critério B</button>
                         <button class="filter-chip" onclick="filterAdmRanking('c')">Critério C</button>
-                        <button class="filter-chip" onclick="filterAdmRanking('d')">Critério D</button>
                     </div>
                     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:4px 0 12px;">
                         <label for="rankMonth" style="font-size:0.82rem; font-weight:700; color:var(--gray-dark)"><i class="fas fa-calendar-alt" style="color:var(--green)"></i> Mês de referência:</label>
@@ -1594,7 +1587,6 @@
                                     <th>A</th>
                                     <th>B</th>
                                     <th>C</th>
-                                    <th>D</th>
                                     <th>Total</th>
                                     <th></th>
                                 </tr>
@@ -1666,17 +1658,8 @@
                         </p>
                     </div>
 
-                    <!-- D -->
-                    <div class="card" style="background:#f4f8ff; box-shadow:none; border:1px solid #cfe0f5; margin-bottom:4px;">
-                        <h3 style="color:#1565c0; margin-bottom:6px;">💲 D — Consulta de Preço</h3>
-                        <p style="font-size:0.9rem; line-height:1.6;">
-                            Contagem de <strong>consultas de preço (prospecção)</strong> feitas pelo vendedor no período.
-                            Também é convertida numa nota de 0 a 100 (até o teto). Mais consultas = mais prospecção ativa = nota maior.
-                        </p>
-                    </div>
-
                     <p style="font-size:0.92rem; color:var(--gray-dark); margin-top:16px; padding-top:12px; border-top:1px dashed #ddd;">
-                        <strong>Total = Nota A + Nota B + Nota C + Nota D</strong> (cada uma de 0 a 100). O ranking é ordenado pelo Total.
+                        <strong>Total = Nota A + Nota B + Nota C</strong> (cada uma de 0 a 100). O ranking é ordenado pelo Total.
                     </p>
                 </div>
             </section>
@@ -1784,10 +1767,6 @@
                                 <label><i class="fas fa-star"></i> Precedentes</label>
                                 <input type="number" id="scoreC" min="0" placeholder="0" required>
                                 <small id="precedenteHint" style="display:none; font-size:0.72rem; color:var(--green-dark); font-weight:600; margin-top:6px;"></small>
-                            </div>
-                            <div class="input-group d">
-                                <label><i class="fas fa-search-dollar"></i> Consultas</label>
-                                <input type="number" id="scoreD" min="0" placeholder="0" required>
                             </div>
                         </div>
                         <div class="form-group" style="margin-top: 16px;">
@@ -1932,12 +1911,11 @@
         const ADMIN_KEY = "ABANANAS2026";
         // ═══════════════════════════════════════════
         // PESOS DOS CRITÉRIOS (editáveis) — multiplicam a nota 0–100 de cada critério.
-        // 1 = todos valem o mesmo (máx 100 pts cada, total 400).
+        // 1 = todos valem o mesmo (máx 100 pts cada, total 300).
         // ═══════════════════════════════════════════
         const PESO_A = 1; // Trocas e Avarias (menor avaria = melhor)
         const PESO_B = 1; // Vendas Positivo (crescimento do ticket médio R$/kg)
         const PESO_C = 1; // Precedentes
-        const PESO_D = 1; // Consulta de Preço
         // ── Critério A — Trocas e Avarias (tudo em kg, sem R$) ──────────
         // avaria_% = volume_avarias_kg / volume_vendido_kg  (ex.: 2.000/50.000 = 4%)
         // Menor % = nota maior → justo entre portes. Pontos descontados por cada 1% de avaria:
@@ -2376,7 +2354,7 @@
             const scores = getScores() || [];
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            const emptyScores = () => ({ a: '0.0', b: '—', bNA: true, c: '0.0', d: '0.0', total: '0.0' });
+            const emptyScores = () => ({ a: '0.0', b: '—', bNA: true, c: '0.0', total: '0.0' });
             const out = participants.filter(p => p.active).map(p => {
                 // Histórico completo do vendedor, em ordem cronológica (A e B são por período).
                 const hist = scores.filter(s => s.participantId === p.id)
@@ -2401,23 +2379,21 @@
                 // Sem mês anterior (bNA) → não pontua e exibe "—".
                 const sb = ref.bNA ? 0 : ref.b * PESO_B;
 
-                // Critérios C e D — média do mês escolhido, ou dos últimos 30 dias (padrão, lógica original).
+                // Critério C — média do mês escolhido, ou dos últimos 30 dias (padrão, lógica original).
                 const pScores = refMonth
                     ? hist.filter(s => (s.date || '').slice(0, 7) === refMonth)
                     : hist.filter(s => new Date(s.date) >= thirtyDaysAgo);
                 const avgC = pScores.length ? pScores.reduce((s, x) => s + x.c, 0) / pScores.length : 0;
-                const avgD = pScores.length ? pScores.reduce((s, x) => s + x.d, 0) / pScores.length : 0;
                 const sc = Math.min(100, avgC * 5) * PESO_C;
-                const sd = Math.min(100, avgD * 1.5) * PESO_D;
 
-                const total = sa + sb + sc + sd;
+                const total = sa + sb + sc;
                 return {
                     ...p,
                     scores: {
                         a: sa.toFixed(1),
                         b: ref.bNA ? '—' : sb.toFixed(1),
                         bNA: ref.bNA,
-                        c: sc.toFixed(1), d: sd.toFixed(1),
+                        c: sc.toFixed(1),
                         crescTicketPct: ref.crescTicketPct, // crescimento % do ticket médio mensal
                         ticketMes: ref.ticketMes,           // ticket do mês de referência (R$/kg)
                         ticketPrevMes: ref.ticketPrevMes,   // ticket do mês anterior (R$/kg)
@@ -2452,7 +2428,7 @@
             document.getElementById('myTotal').textContent = me.scores.total;
             document.getElementById('myTotalP').textContent = ranking.length;
             const total = parseFloat(me.scores.total);
-            const pct = Math.min(100, (total / 400) * 100);
+            const pct = Math.min(100, (total / 300) * 100);
             const circ = 2 * Math.PI * 60;
             document.getElementById('progCircle').style.strokeDashoffset = circ - (pct / 100) * circ;
             document.getElementById('progNum').textContent = Math.round(pct) + '%';
@@ -2463,8 +2439,8 @@
             if (scores.length >= 2) {
                 const latest = scores[scores.length - 1];
                 const prev = scores[scores.length - 2];
-                const lt = latest.a + latest.b + latest.c + latest.d;
-                const pt = prev.a + prev.b + prev.c + prev.d;
+                const lt = latest.a + latest.b + latest.c;
+                const pt = prev.a + prev.b + prev.c;
                 const diff = lt - pt;
                 trendGrid.innerHTML = `
                     <div class="trend-item"><div class="lbl">Anterior</div><div class="val">${pt.toFixed(1)}</div></div>
@@ -2490,8 +2466,7 @@
             const criteria = [
                 { key: 'a', name: 'Trocas e Avarias', icon: '🛡️', desc: 'Cuide do produto como se fosse seu. Quanto menos quebra e troca, melhor.', color: '#00a651' },
                 { key: 'b', name: 'Vendas Positivo', icon: '📈', desc: 'Aumente o ticket médio (R$/kg) em relação ao mês passado — valor agregado!', color: '#ffc72c' },
-                { key: 'c', name: 'Precedente Positivo', icon: '⭐', desc: 'Atenda os pedidos da diretoria. Quanto mais precedentes positivos, mais pontos.', color: '#ff9800' },
-                { key: 'd', name: 'Consulta de Preço', icon: '🔍', desc: 'Prospecção e iniciativa. Quanto mais consultas de preço, melhor.', color: '#008c44' }
+                { key: 'c', name: 'Precedente Positivo', icon: '⭐', desc: 'Atenda os pedidos da diretoria. Quanto mais precedentes positivos, mais pontos.', color: '#ff9800' }
             ];
             document.getElementById('criteriaList').innerHTML = criteria.map(c => {
                 const na = c.key === 'b' && me.scores.bNA;
@@ -2521,7 +2496,7 @@
             document.getElementById('dashEvolucao').style.display = 'block';
             const scores = getScores().filter(s => s.participantId === pid)
                 .sort((a, b) => new Date(a.date) - new Date(b.date));
-            const totals = scores.map(s => parseFloat((s.a + s.b + s.c + s.d).toFixed(1)));
+            const totals = scores.map(s => parseFloat((s.a + s.b + s.c).toFixed(1)));
             const labels = scores.map(s => new Date(s.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
             renderLineChart('evoLineWrap', [{ name: 'Total', values: totals, labels }], ['#00a651']);
             const latest = scores[scores.length - 1];
@@ -2529,15 +2504,14 @@
                 renderBarChart('evoBarChart', [
                     { label: 'Trocas', value: latest.a, color: '#00a651' },
                     { label: 'Vendas', value: Math.round(latest.b), color: '#ffc72c' },
-                    { label: 'Preced.', value: latest.c, color: '#ff9800' },
-                    { label: 'Consultas', value: latest.d, color: '#008c44' }
+                    { label: 'Preced.', value: latest.c, color: '#ff9800' }
                 ]);
             }
             document.getElementById('evoHistory').innerHTML = scores.slice().reverse().map(s => `
                 <div class="activity">
                     <div class="activity-ico" style="background:var(--yellow);color:var(--black)"><i class="fas fa-calendar"></i></div>
                     <div class="activity-body">
-                        <p><strong>${s.date}</strong> — Vendido ${fmtKg(s.volumeVendido)} · Avaria ${(s.avariaPct * 100).toFixed(1).replace('.', ',')}% · A:${s.a} B:${s.bNA ? '—' : s.b} <strong style="color:var(--orange)">C:${s.c}</strong> D:${s.d}</p>
+                        <p><strong>${s.date}</strong> — Vendido ${fmtKg(s.volumeVendido)} · Avaria ${(s.avariaPct * 100).toFixed(1).replace('.', ',')}% · A:${s.a} B:${s.bNA ? '—' : s.b} <strong style="color:var(--orange)">C:${s.c}</strong></p>
                         ${s.notes ? `<p style="color:#888;font-size:0.82rem">${s.notes}</p>` : ''}
                     </div>
                 </div>
@@ -2668,7 +2642,6 @@
                         <td style="${hl('a')}"><div style="font-weight:700">${p.scores.a}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill a" style="width:${p.scores.a}%"></div></div></td>
                         <td style="${hl('b')}"><div style="font-weight:700">${p.scores.b}</div>${crescTicketBadge(p.scores)}<div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill b" style="width:${p.scores.bNA ? 0 : p.scores.b}%"></div></div></td>
                         <td style="${hl('c')}"><div style="font-weight:700;color:var(--orange)">${p.scores.c}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill c" style="width:${p.scores.c}%"></div></div></td>
-                        <td style="${hl('d')}"><div style="font-weight:700">${p.scores.d}</div><div class="criteria-bar" style="margin-top:4px"><div class="criteria-bar-fill d" style="width:${p.scores.d}%"></div></div></td>
                         <td><strong style="color:var(--green);font-size:1.05rem">${p.scores.total}</strong></td>
                         <td><button class="header-btn" style="color:var(--green);background:var(--green-light)" onclick="showParticipantModal('${p.id}')"><i class="fas fa-eye"></i></button></td>
                     </tr>
@@ -3180,14 +3153,13 @@
             const volumeAvarias = parseFloat(document.getElementById('scoreAvarias').value) || 0;
             const qtdClientes = parseInt(document.getElementById('scoreClientes').value) || 0;
             const c = parseInt(document.getElementById('scoreC').value) || 0;
-            const d = parseInt(document.getElementById('scoreD').value) || 0;
             const notes = document.getElementById('scoreNotes').value;
             if (!pid) { toast('Atenção', 'Selecione um participante.', 'warning'); return; }
             const btn = e.target.querySelector('button[type="submit"]');
             if (btn) { btn.disabled = true; }
             try {
                 await authReady;
-                const payload = { participantId: pid, date, c, d, notes, faturamento, volumeVendido, volumeAvarias, qtdClientes };
+                const payload = { participantId: pid, date, c, notes, faturamento, volumeVendido, volumeAvarias, qtdClientes };
                 if (editingScoreId) {
                     // Edição: atualiza o lançamento existente (não mexe em criadoEm).
                     await updateDoc(doc(db, 'pontuacoes', editingScoreId), payload);
@@ -3218,7 +3190,6 @@
             document.getElementById('scoreAvarias').value = s.volumeAvarias || 0;
             document.getElementById('scoreClientes').value = s.qtdClientes || 0;
             document.getElementById('scoreC').value = s.c || 0;
-            document.getElementById('scoreD').value = s.d || 0;
             document.getElementById('scoreNotes').value = s.notes || '';
             document.getElementById('editScoreBanner').style.display = 'block';
             document.getElementById('btnCancelEdit').style.display = 'inline-flex';
@@ -3280,7 +3251,7 @@
                     <div class="activity">
                         <div class="activity-ico"><i class="fas fa-chart-bar"></i></div>
                         <div class="activity-body">
-                            <p><strong>${p ? p.name : '?'}</strong> — A:${s.a} B:${s.bNA ? '—' : s.b} <strong style="color:var(--orange)">C:${s.c}</strong> D:${s.d}</p>
+                            <p><strong>${p ? p.name : '?'}</strong> — A:${s.a} B:${s.bNA ? '—' : s.b} <strong style="color:var(--orange)">C:${s.c}</strong></p>
                             ${s.volumeVendido ? `<p style="color:#888;font-size:0.82rem">${s.faturamento ? fmtRS(s.faturamento) + ' · ' : ''}Vendido ${fmtKg(s.volumeVendido)}${s.faturamento ? ' · Ticket ' + fmtTicket(s.ticketMes) : ''} · Avaria ${fmtKg(s.volumeAvarias)} (${(s.avariaPct * 100).toFixed(1).replace('.', ',')}%) · ${s.qtdClientes} cliente(s) · ${fmtKg(s.volPorCliente)}/cliente</p>` : ''}
                             ${s.notes ? `<p style="color:#888;font-size:0.82rem">${s.notes}</p>` : ''}
                             <div class="activity-time">${s.date}</div>
@@ -3505,7 +3476,7 @@
                     const ps = scores.filter(s => s.participantId === p.id).sort((a, b) => new Date(a.date) - new Date(b.date));
                     return {
                         name: p.name,
-                        values: ps.map(s => parseFloat((s.a + s.b + s.c + s.d).toFixed(1))),
+                        values: ps.map(s => parseFloat((s.a + s.b + s.c).toFixed(1))),
                         labels: ps.map(s => new Date(s.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }))
                     };
                 });
@@ -3514,7 +3485,7 @@
                 const p = getParticipants().find(x => x.id === pid);
                 series = [{
                     name: p ? p.name : 'Participante',
-                    values: ps.map(s => parseFloat((s.a + s.b + s.c + s.d).toFixed(1))),
+                    values: ps.map(s => parseFloat((s.a + s.b + s.c).toFixed(1))),
                     labels: ps.map(s => new Date(s.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }))
                 }];
             }
@@ -3527,12 +3498,11 @@
             });
             const relevant = pid === 'all' ? Object.values(latest) : [latest[pid]].filter(Boolean);
             const media = key => relevant.length ? Math.round(relevant.reduce((s, x) => s + (x[key] || 0), 0) / relevant.length) : 0;
-            // Sempre desenha as 4 notas A/B/C/D (zeros quando ainda não há lançamento).
+            // Sempre desenha as 3 notas A/B/C (zeros quando ainda não há lançamento).
             renderBarChart('adminEvoBar', [
                 { label: 'A', value: media('a'), color: '#00a651' },
                 { label: 'B', value: media('b'), color: '#ffc72c' },
-                { label: 'C', value: media('c'), color: '#ff9800' },
-                { label: 'D', value: media('d'), color: '#008c44' }
+                { label: 'C', value: media('c'), color: '#ff9800' }
             ]);
         }
         window.renderAdminEvo = renderAdminEvo;
@@ -3639,14 +3609,13 @@
                     <div class="trend-item"><div class="lbl">Trocas</div><div class="val">${latest.a}</div></div>
                     <div class="trend-item"><div class="lbl">Vendas</div><div class="val">${latest.bNA ? '—' : latest.b}</div></div>
                     <div class="trend-item"><div class="lbl">Precedentes</div><div class="val" style="color:var(--orange)">${latest.c}</div></div>
-                    <div class="trend-item"><div class="lbl">Consultas</div><div class="val">${latest.d}</div></div>
                 </div>
                 <h4 style="font-weight:800;margin-bottom:12px">Histórico</h4>
                 ${ps.length === 0 ? '<p style="color:#888">Nenhum registro</p>' : ps.map(s => `
                     <div class="activity">
                         <div class="activity-ico" style="background:var(--yellow);color:var(--black)"><i class="fas fa-calendar"></i></div>
                         <div class="activity-body">
-                            <p><strong>${s.date}</strong> — A:${s.a} B:${s.bNA ? '—' : s.b} <strong style="color:var(--orange)">C:${s.c}</strong> D:${s.d}</p>
+                            <p><strong>${s.date}</strong> — A:${s.a} B:${s.bNA ? '—' : s.b} <strong style="color:var(--orange)">C:${s.c}</strong></p>
                             ${s.notes ? `<p style="color:#888;font-size:0.82rem">${s.notes}</p>` : ''}
                         </div>
                     </div>
