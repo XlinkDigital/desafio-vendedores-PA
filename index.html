@@ -1335,8 +1335,14 @@
                 <button class="nav-btn active" onclick="goTo('adm-ranking')">
                     <i class="fas fa-trophy"></i> Ranking
                 </button>
+                <button class="nav-btn" onclick="goTo('adm-como-funciona')">
+                    <i class="fas fa-circle-question"></i> Como funciona
+                </button>
                 <button class="nav-btn" onclick="goTo('adm-importar')">
                     <i class="fas fa-file-import"></i> Importar
+                </button>
+                <button class="nav-btn" onclick="goTo('adm-dados')">
+                    <i class="fas fa-table"></i> Dados do relatório
                 </button>
                 <button class="nav-btn" onclick="goTo('adm-registrar')">
                     <i class="fas fa-plus-circle"></i> Registrar
@@ -1559,6 +1565,82 @@
                 </div>
             </section>
             <!-- ═══════════════════════════════════════════
+                 ADMIN: COMO FUNCIONA A PONTUAÇÃO
+            ═══════════════════════════════════════════ -->
+            <section class="section" id="adm-como-funciona">
+                <div class="card" style="border-left:6px solid var(--green);">
+                    <div class="card-title"><i class="fas fa-circle-question"></i> Como funciona a pontuação</div>
+                    <p style="font-size:0.92rem; color:var(--gray-dark); line-height:1.6;">
+                        O ranking tem <strong>4 critérios: A, B, C e D</strong>. Cada critério vira uma
+                        <strong>NOTA de 0 a 100</strong>. O <strong>Total</strong> é a soma das 4 notas
+                        (peso 1 cada) — então o máximo possível é <strong>400 pontos</strong>.
+                    </p>
+                    <div style="background:#fff3cd; border:2px solid var(--yellow); border-radius:12px; padding:14px 16px; margin:14px 0; font-size:0.9rem; line-height:1.5;">
+                        ⚠️ <strong>Atenção:</strong> o número em cada coluna (A, B, C, D) é a <strong>NOTA</strong>,
+                        <u>não</u> a quantidade. Exemplo: <strong>“A = 100”</strong> significa <strong>nota máxima por ter ZERO avaria</strong> —
+                        e não “100 avarias”. Quanto <em>maior</em> a nota, <em>melhor</em>.
+                    </div>
+
+                    <!-- A -->
+                    <div class="card" style="background:#f6fbf7; box-shadow:none; border:1px solid #d8ecdd; margin-bottom:14px;">
+                        <h3 style="color:var(--green-dark); margin-bottom:6px;">🛡️ A — Trocas e Avarias <span style="font-weight:600; color:#888;">(menos avaria = nota maior)</span></h3>
+                        <p style="font-size:0.9rem; line-height:1.6; margin-bottom:8px;">
+                            % de avaria = (volume de avarias ÷ volume vendido) × 100<br>
+                            <strong>Nota A = 100 − (% de avaria × 5)</strong>, limitada entre 0 e 100.<br>
+                            Cada <strong>1% de avaria tira 5 pontos</strong>.
+                        </p>
+                        <div style="overflow-x:auto;">
+                            <table class="ranking-table" style="max-width:360px;">
+                                <thead><tr><th>% de avaria</th><th>Nota A</th></tr></thead>
+                                <tbody>
+                                    <tr><td>0%</td><td><strong style="color:var(--green)">100</strong></td></tr>
+                                    <tr><td>4%</td><td><strong>80</strong></td></tr>
+                                    <tr><td>8%</td><td><strong>60</strong></td></tr>
+                                    <tr><td>12%</td><td><strong>40</strong></td></tr>
+                                    <tr><td>20% ou mais</td><td><strong style="color:var(--red)">0</strong></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p style="font-size:0.76rem; color:#888; margin-top:6px;">Constante editável no código: <code>AVARIA_PTS_POR_PCT = 5</code>.</p>
+                    </div>
+
+                    <!-- B -->
+                    <div class="card" style="background:#fffdf3; box-shadow:none; border:1px solid #f0e6bd; margin-bottom:14px;">
+                        <h3 style="color:#b8860b; margin-bottom:6px;">📈 B — Vendas Positivo <span style="font-weight:600; color:#888;">(crescimento = nota maior)</span></h3>
+                        <p style="font-size:0.9rem; line-height:1.6;">
+                            Crescimento percentual do <strong>ticket médio (R$/kg)</strong> do vendedor em relação
+                            ao <strong>mês anterior</strong> dele. Ticket médio = faturamento (R$) ÷ volume vendido (kg).<br>
+                            Premia quem <strong>agrega valor por quilo</strong>, não quem só vende mais volume.<br>
+                            A nota parte de <strong>50</strong> (manteve o ticket) e sobe/desce com o crescimento
+                            (+20% → 100, −20% → 0). <strong>Sem mês anterior cadastrado, mostra “—”</strong> e não pontua.
+                        </p>
+                    </div>
+
+                    <!-- C -->
+                    <div class="card" style="background:#fff8f0; box-shadow:none; border:1px solid #f3dec3; margin-bottom:14px;">
+                        <h3 style="color:var(--orange); margin-bottom:6px;">⭐ C — Precedente Positivo</h3>
+                        <p style="font-size:0.9rem; line-height:1.6;">
+                            Contagem de <strong>solicitações da diretoria atendidas</strong> pelo vendedor no período.
+                            Essa quantidade é convertida numa nota de 0 a 100 (cada solicitação vale pontos,
+                            até o teto de 100). Quanto mais atende, maior a nota.
+                        </p>
+                    </div>
+
+                    <!-- D -->
+                    <div class="card" style="background:#f4f8ff; box-shadow:none; border:1px solid #cfe0f5; margin-bottom:4px;">
+                        <h3 style="color:#1565c0; margin-bottom:6px;">💲 D — Consulta de Preço</h3>
+                        <p style="font-size:0.9rem; line-height:1.6;">
+                            Contagem de <strong>consultas de preço (prospecção)</strong> feitas pelo vendedor no período.
+                            Também é convertida numa nota de 0 a 100 (até o teto). Mais consultas = mais prospecção ativa = nota maior.
+                        </p>
+                    </div>
+
+                    <p style="font-size:0.92rem; color:var(--gray-dark); margin-top:16px; padding-top:12px; border-top:1px dashed #ddd;">
+                        <strong>Total = Nota A + Nota B + Nota C + Nota D</strong> (cada uma de 0 a 100). O ranking é ordenado pelo Total.
+                    </p>
+                </div>
+            </section>
+            <!-- ═══════════════════════════════════════════
                  ADMIN: REGISTRAR
             ═══════════════════════════════════════════ -->
             <!-- IMPORTAR RELATÓRIOS — fluxo automático em lote, em aba própria (sem nenhum campo do formScore) -->
@@ -1588,6 +1670,22 @@
                     <button type="button" class="auth-btn" id="batchConfirmBtn" onclick="confirmarImportacaoLote()" style="margin-top:14px; display:none;">
                         <i class="fas fa-cloud-upload-alt"></i> Confirmar importação
                     </button>
+                </div>
+            </section>
+            <!-- ═══════════════════════════════════════════
+                 ADMIN: DADOS DO RELATÓRIO (registros importados, persistente)
+            ═══════════════════════════════════════════ -->
+            <section class="section" id="adm-dados">
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-table"></i> Dados do relatório (importados)</div>
+                    <p style="font-size:0.84rem; color:var(--gray-dark); margin-bottom:12px;">
+                        Registros já salvos por vendedor, lidos do banco. Selecione o período para consultar.
+                    </p>
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+                        <label for="dadosPeriodo" style="font-size:0.82rem; font-weight:700; color:var(--gray-dark)"><i class="fas fa-calendar-alt" style="color:var(--green)"></i> Período:</label>
+                        <select id="dadosPeriodo" onchange="changeDadosPeriodo(this.value)" style="padding:8px 12px; border:2px solid var(--green); border-radius:10px; font-family:'Montserrat'; font-weight:700; font-size:0.82rem; background:#fff; color:var(--green-dark);"></select>
+                    </div>
+                    <div id="dadosRelatorio"></div>
                 </div>
             </section>
             <!-- REGISTRAR PONTUAÇÃO INDIVIDUAL — ferramenta opcional de ajuste manual (formScore com required) -->
@@ -2204,8 +2302,9 @@
             window.scrollTo(0, 0);
             // Recarrega dados compartilhados antes de renderizar seções que dependem deles
             const precisaDados = ['meu-ranking', 'o-que-cumprir', 'minha-evolucao', 'ranking-geral',
-                'adm-ranking', 'adm-importar', 'adm-registrar', 'adm-participantes', 'adm-solicitacoes', 'adm-evolucao'];
+                'adm-ranking', 'adm-importar', 'adm-dados', 'adm-registrar', 'adm-participantes', 'adm-solicitacoes', 'adm-evolucao'];
             if (precisaDados.includes(sectionId)) await refreshAll();
+            if (sectionId === 'adm-dados') loadDadosRelatorio();
             if (sectionId === 'meu-ranking') loadMeuRanking();
             if (sectionId === 'o-que-cumprir') loadOQueCumprir();
             if (sectionId === 'minha-evolucao') loadMinhaEvolucao();
@@ -2551,6 +2650,79 @@
             loadAdmRanking(criteria);
         }
         window.filterAdmRanking = filterAdmRanking;
+        // ── ABA "Dados do relatório" — registros importados, lidos do Firestore (persistente) ──
+        let dadosPeriodo = ''; // 'YYYY-MM-DD' selecionado no dropdown de período
+        function fmtData(d) { // '2026-06-15' → '15/06/2026'
+            if (!d) return '—';
+            const [y, m, dia] = String(d).split('-');
+            return (dia && m && y) ? `${dia}/${m}/${y}` : d;
+        }
+        // Datas (períodos) com lançamento, mais recente primeiro.
+        function periodosDisponiveis() {
+            const set = new Set((getScores() || []).map(s => s.date).filter(Boolean));
+            return [...set].sort().reverse();
+        }
+        function popularPeriodosDados() {
+            const sel = document.getElementById('dadosPeriodo');
+            if (!sel) return;
+            const periodos = periodosDisponiveis();
+            sel.innerHTML = periodos.length
+                ? periodos.map(d => `<option value="${d}">${fmtData(d)}</option>`).join('')
+                : '<option value="">— sem dados —</option>';
+            sel.value = periodos.includes(dadosPeriodo) ? dadosPeriodo : (periodos[0] || '');
+            dadosPeriodo = sel.value;
+        }
+        function changeDadosPeriodo(v) { dadosPeriodo = v; loadDadosRelatorio(); }
+        window.changeDadosPeriodo = changeDadosPeriodo;
+        function loadDadosRelatorio() {
+            popularPeriodosDados();
+            const wrap = document.getElementById('dadosRelatorio');
+            if (!wrap) return;
+            const parts = getParticipants() || [];
+            const byId = {};
+            parts.forEach(p => { byId[p.id] = p; });
+            const linhas = (getScores() || []).filter(s => s.date === dadosPeriodo)
+                .map(s => ({ s, p: byId[s.participantId] }))
+                .filter(x => x.p) // só de participantes existentes
+                .sort((a, b) => (b.s.volumeVendido || 0) - (a.s.volumeVendido || 0));
+            if (!linhas.length) {
+                wrap.innerHTML = '<div class="empty"><i class="fas fa-table"></i><h3>Nenhum dado neste período</h3><p>Importe um relatório ou registre lançamentos.</p></div>';
+                return;
+            }
+            const rows = linhas.map(({ s, p }) => {
+                const fat = Number(s.faturamento) || 0;
+                const vend = Number(s.volumeVendido) || 0;
+                const avar = Number(s.volumeAvarias) || 0;
+                const cli = Number(s.qtdClientes) || 0;
+                const ticket = (fat > 0 && vend > 0) ? fat / vend : null;
+                const pct = vend > 0 ? (avar / vend * 100) : null;
+                const volCli = (vend > 0 && cli > 0) ? vend / cli : null;
+                return `<tr>
+                    <td style="font-weight:700">${p.name}</td>
+                    <td>${p.rota || p.area || '—'}</td>
+                    <td>${fat > 0 ? fmtRS(fat) : '—'}</td>
+                    <td>${vend > 0 ? fmtKg(vend) : '—'}</td>
+                    <td style="font-weight:700;color:var(--green-dark)">${fmtTicket(ticket)}</td>
+                    <td>${avar > 0 ? fmtKg(avar) : '—'}</td>
+                    <td>${pct != null ? pct.toFixed(1).replace('.', ',') + '%' : '—'}</td>
+                    <td>${cli > 0 ? cli : '—'}</td>
+                    <td>${volCli != null ? fmtKg(volCli) : '—'}</td>
+                </tr>`;
+            }).join('');
+            wrap.innerHTML = `
+                <p style="font-size:0.86rem; font-weight:700; color:var(--green-dark); margin-bottom:10px;">
+                    <i class="fas fa-calendar-alt"></i> Período: ${fmtData(dadosPeriodo)} · ${linhas.length} vendedor(es)
+                </p>
+                <div style="overflow-x:auto;">
+                    <table class="ranking-table">
+                        <thead><tr>
+                            <th>Vendedor</th><th>Rota</th><th>Faturamento</th><th>Vendido</th><th>Ticket médio</th><th>Avarias</th><th>Avaria %</th><th>Clientes</th><th>Vol/cliente</th>
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        }
+        window.loadDadosRelatorio = loadDadosRelatorio;
         function initRegistrar() {
             // O dropdown de participante é populado pela fonte única (refreshAll → syncParticipantSelects).
             syncParticipantSelects();

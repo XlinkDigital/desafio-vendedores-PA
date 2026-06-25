@@ -59,8 +59,10 @@ Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendid
 
 ### Telas
 - **Vendedor:** Meu Ranking · O Que Cumprir · Minha Evolução · Ranking Geral.
-- **Admin:** Ranking · Registrar · Participantes · Solicitações (aprovar/recusar) · Evolução · Documentos · Fotos.
-- Separação garantida pela nav exibida (vendedor não acessa telas de admin).
+- **Admin:** Ranking · **Como funciona** · Importar · **Dados do relatório** · Registrar · Participantes · Solicitações (aprovar/recusar) · Evolução · Documentos · Fotos.
+- **Como funciona** (`#adm-como-funciona`): página estática explicando que A/B/C/D são NOTAS 0-100 (não quantidade), Total = soma (máx 400). Detalha A (fórmula + tabela 0%→100…20%→0), B (crescimento do ticket médio R$/kg), C (precedentes atendidos → nota), D (consultas de preço → nota).
+- **Dados do relatório** (`#adm-dados`, `loadDadosRelatorio`): lê do Firestore os registros do período selecionado (dropdown `#dadosPeriodo` com as datas existentes) e mostra tabela persistente — Vendedor, Rota, Faturamento, Vendido, Ticket médio, Avarias, Avaria %, Clientes, Vol/cliente. Mesmo formato da prévia de importação.
+- Separação garantida pela nav exibida (vendedor não acessa telas de admin; as 2 novas abas vivem dentro de `#navAdmin`).
 
 ### Visual
 - Logo da empresa (`adb.png`, transparente, otimizada 15MB→66KB / 400×161px) no **cabeçalho verde** (`.header-logo-img`, ~44px) e nas **3 telas de acesso** (`.auth-logo-img`, ~200px largura, responsiva).
