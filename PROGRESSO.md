@@ -65,7 +65,9 @@ Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendid
 - Separação garantida pela nav exibida (vendedor não acessa telas de admin; as 2 novas abas vivem dentro de `#navAdmin`).
 
 ### Visual
-- Logo da empresa (`adb.png`, transparente, otimizada 15MB→66KB / 400×161px) no **cabeçalho verde** (`.header-logo-img`, ~44px) e nas **3 telas de acesso** (`.auth-logo-img`, ~200px largura, responsiva).
+- **Navegação = menu lateral (sidebar) à esquerda** (`.sidebar`, 248px, `position:fixed`). Logo no topo (`.sidebar-logo`), itens verticais (`.nav` vira `flex-direction:column`; `.nav-btn` alinhado à esquerda, ativo verde), rodapé com nome+selo ADMIN/VENDEDOR (`#headerName`/`#headerRole`) e botão Sair (`.sidebar-logout`). Conteúdo em `.content` (`margin-left:248px`). Os ids `navVendedor`/`navAdmin` e `headerName`/`headerRole` foram mantidos (entrarApp inalterado).
+- **Responsivo (≤900px):** sidebar recolhe (`transform:translateX(-100%)`), abre/fecha pelo hambúrguer da `.mobile-topbar` (barra verde fina) via `toggleSidebar()`/`closeSidebar()` (classe `.open` + overlay `#sidebarOverlay.show`). `goTo()` chama `closeSidebar()` ao trocar de aba.
+- Logo da empresa (`adb.png`, transparente, otimizada 15MB→66KB / 400×161px) na sidebar, na barra mobile e nas **3 telas de acesso** (`.auth-logo-img`). `.header-btn` ainda é usado em botões de tabela (não remover).
 
 ## Histórico recente (mais recente em cima)
 - (atual) feat: critério B = crescimento do TICKET MÉDIO mensal (R$/kg); persiste faturamento; campo R$ no Registrar + preview; ticket atual←anterior e % colorido no ranking; filtro B ordena por % bruto

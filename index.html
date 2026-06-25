@@ -359,11 +359,14 @@
             gap: 8px;
         }
         .role-badge {
-            background: rgba(255,255,255,0.2);
-            padding: 4px 10px;
+            background: var(--green-light);
+            color: var(--green-dark);
+            padding: 3px 10px;
             border-radius: 20px;
-            font-size: 0.7rem;
+            font-size: 0.68rem;
+            font-weight: 800;
             text-transform: uppercase;
+            align-self: flex-start;
         }
         .header-btn {
             background: rgba(255,255,255,0.15);
@@ -379,55 +382,93 @@
             transition: all 0.3s;
         }
         .header-btn:hover { background: rgba(255,255,255,0.25); }
-        /* NAV */
-        .nav {
+        /* ═══════════ SIDEBAR (menu lateral) ═══════════ */
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            width: 248px;
             background: var(--white);
+            box-shadow: 2px 0 16px rgba(0,0,0,0.06);
             display: flex;
-            gap: 4px;
-            padding: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            overflow-x: auto;
-            scrollbar-width: none;
+            flex-direction: column;
+            z-index: 200;
+            transition: transform 0.3s ease;
         }
-        .nav::-webkit-scrollbar { display: none; }
-        .nav-inner {
-            max-width: 1200px;
-            margin: 0 auto;
+        .sidebar-logo {
+            background: linear-gradient(135deg, var(--green), var(--green-dark));
+            padding: 18px 16px;
             display: flex;
-            gap: 4px;
-            width: 100%;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
-        .nav-btn {
+        .sidebar-logo img { height: 46px; max-width: 180px; object-fit: contain; display: block; }
+        /* navs ficam ocultos até entrarApp() definir o perfil (display:flex inline) */
+        .nav {
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            padding: 12px 10px;
             flex: 1;
-            min-width: 120px;
-            padding: 12px 16px;
+            overflow-y: auto;
+            min-height: 0;
+        }
+        .nav-inner { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+        .nav-btn {
+            width: 100%;
+            padding: 12px 14px;
             border: none;
             background: transparent;
             color: var(--gray-dark);
             font-family: 'Montserrat', sans-serif;
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.88rem;
             cursor: pointer;
-            border-radius: 10px;
-            transition: all 0.3s;
+            border-radius: 12px;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
+            justify-content: flex-start;
+            gap: 12px;
             white-space: nowrap;
+            text-align: left;
         }
+        .nav-btn i { width: 20px; text-align: center; font-size: 1rem; }
         .nav-btn:hover { background: var(--gray); color: var(--black); }
         .nav-btn.active {
             background: var(--green);
             color: var(--white);
-            box-shadow: 0 4px 15px rgba(0,166,81,0.2);
+            box-shadow: 0 4px 15px rgba(0,166,81,0.25);
         }
-        .main {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            min-height: calc(100vh - 120px);
+        .sidebar-footer {
+            border-top: 1px solid #eee;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-shrink: 0;
         }
+        .sidebar-user { display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+        .sidebar-user #headerName { font-weight: 800; font-size: 0.9rem; color: var(--black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sidebar-logout {
+            background: var(--green-light);
+            color: var(--green-dark);
+            border: none;
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .sidebar-logout:hover { background: var(--green); color: var(--white); }
+        /* área de conteúdo à direita */
+        .content { margin-left: 248px; min-height: 100vh; }
+        .main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+        /* topo mobile (hambúrguer) e overlay — só aparecem no celular */
+        .mobile-topbar { display: none; }
+        .sidebar-overlay { display: none; }
         /* SECTIONS */
         .section {
             display: none;
@@ -1185,18 +1226,50 @@
             color: var(--orange);
             margin: 10px 0;
         }
-        /* RESPONSIVE */
+        /* RESPONSIVE — sidebar recolhe em menu hambúrguer */
+        @media (max-width: 900px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 270px;
+            }
+            .sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.25); }
+            .content { margin-left: 0; }
+            .mobile-topbar {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                position: sticky;
+                top: 0;
+                z-index: 150;
+                background: linear-gradient(135deg, var(--green), var(--green-dark));
+                color: var(--white);
+                padding: 10px 14px;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+            }
+            .mobile-topbar .hamburger {
+                background: rgba(255,255,255,0.18);
+                border: none; color: var(--white);
+                width: 40px; height: 40px;
+                border-radius: 10px; cursor: pointer; font-size: 1.1rem;
+                display: flex; align-items: center; justify-content: center;
+            }
+            .mobile-topbar img { height: 30px; max-width: 130px; object-fit: contain; }
+            .mobile-topbar .mt-title { font-weight: 800; font-size: 1rem; }
+            .sidebar-overlay.show {
+                display: block;
+                position: fixed; inset: 0;
+                background: rgba(0,0,0,0.45);
+                z-index: 190;
+            }
+        }
         @media (max-width: 768px) {
             .auth-box { padding: 28px; }
-            .header-title { display: none; }
-            .header-logo-img { height: 34px; max-width: 150px; }
-            .nav-btn { min-width: auto; padding: 10px 12px; font-size: 0.75rem; }
-            .nav-btn i { font-size: 1rem; }
             .input-grid { grid-template-columns: 1fr; }
             .podium { flex-direction: column; align-items: center; }
             .position-number { font-size: 3.5rem; }
             .explain-grid { grid-template-columns: 1fr; }
             .chart-wrap { height: 200px; }
+            .main { padding: 16px; }
         }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -1297,25 +1370,20 @@
          APP
     ═══════════════════════════════════════════ -->
     <div id="app">
-        <header class="header">
-            <div class="header-inner">
-                <div class="header-brand">
-                    <img src="adb.png" alt="Armazém das Bananas" class="header-logo-img">
-                    <div class="header-title">Desafio Vendedores</div>
-                </div>
-                <div class="header-actions">
-                    <div class="header-user">
-                        <span id="headerName">Usuário</span>
-                        <span class="role-badge" id="headerRole">VENDEDOR</span>
-                    </div>
-                    <button class="header-btn" onclick="logout()" title="Sair">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </div>
+        <!-- Barra superior fina só no mobile (abre/fecha a sidebar) -->
+        <div class="mobile-topbar">
+            <button class="hamburger" onclick="toggleSidebar()" aria-label="Abrir menu"><i class="fas fa-bars"></i></button>
+            <img src="adb.png" alt="Armazém das Bananas">
+            <span class="mt-title">Desafio Vendedores</span>
+        </div>
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+        <!-- MENU LATERAL (sidebar) -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <img src="adb.png" alt="Armazém das Bananas">
             </div>
-        </header>
-        <!-- NAV VENDEDOR -->
-        <nav class="nav" id="navVendedor" style="display: none;">
+            <!-- NAV VENDEDOR -->
+            <nav class="nav" id="navVendedor" style="display: none;">
             <div class="nav-inner">
                 <button class="nav-btn active" onclick="goTo('meu-ranking')">
                     <i class="fas fa-chart-line"></i> Meu Ranking
@@ -1365,7 +1433,16 @@
                     <i class="fas fa-images"></i> Fotos
                 </button>
             </div>
-        </nav>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <span id="headerName">Usuário</span>
+                    <span class="role-badge" id="headerRole">VENDEDOR</span>
+                </div>
+                <button class="sidebar-logout" onclick="logout()" title="Sair"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </aside>
+        <div class="content">
         <main class="main">
             <!-- ═══════════════════════════════════════════
                  VENDEDOR: MEU RANKING
@@ -1868,6 +1945,7 @@
                 </div>
             </section>
         </main>
+        </div>
     </div>
     <!-- MODAL -->
     <div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
@@ -2336,8 +2414,24 @@
             if (sectionId === 'adm-evolucao') initAdminEvo();
             if (sectionId === 'adm-documentos') loadAdmDocs();
             if (sectionId === 'adm-fotos') loadAdmPhotos();
+            closeSidebar(); // no mobile, fecha o menu ao escolher uma aba
         }
         window.goTo = goTo;
+        // ── Sidebar mobile (hambúrguer) ──
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            const ov = document.getElementById('sidebarOverlay');
+            const aberto = sb.classList.toggle('open');
+            if (ov) ov.classList.toggle('show', aberto);
+        }
+        window.toggleSidebar = toggleSidebar;
+        function closeSidebar() {
+            const sb = document.getElementById('sidebar');
+            const ov = document.getElementById('sidebarOverlay');
+            if (sb) sb.classList.remove('open');
+            if (ov) ov.classList.remove('show');
+        }
+        window.closeSidebar = closeSidebar;
         // ═══════════════════════════════════════════
         // RANKING CALC
         // ═══════════════════════════════════════════
