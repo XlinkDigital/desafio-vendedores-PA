@@ -2249,14 +2249,18 @@
                     erro.classList.add('show');
                     return;
                 }
-                // Em caso de homônimos, prioriza um cadastro já liberado.
-                const m = matches.find(x => x.ativo === true && (x.status || '') === 'aprovado') || matches[0];
-                if (!(m.ativo === true && (m.status || '') === 'aprovado')) {
+                // Pode haver cadastros DUPLICADOS do mesmo vendedor (ex.: um importado sem senha).
+                // Considera todos os homônimos LIBERADOS e aceita se a senha bater em QUALQUER um deles,
+                // assim uma duplicata de senha vazia não trava o login. Apara espaços dos dois lados.
+                const liberados = matches.filter(x => x.ativo === true && (x.status || '') === 'aprovado');
+                if (!liberados.length) {
                     erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Seu acesso ainda não foi liberado pelo gestor.</span>';
                     erro.classList.add('show');
                     return;
                 }
-                if ((m.senha || '') !== senha) {
+                const senhaIn = (senha || '').trim();
+                const m = liberados.find(x => String(x.senha || '').trim() === senhaIn);
+                if (!m) {
                     erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Senha incorreta.</span>';
                     erro.classList.add('show');
                     return;
