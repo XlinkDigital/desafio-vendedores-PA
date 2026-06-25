@@ -2670,54 +2670,67 @@
             const n = normNome(loja);
             return UNIDADE_TERMOS.some(t => n.includes(t));
         }
-        // Lê o HTML e devolve { rows: [{ nome, rota, faturamento, volume, clientes }], ignorados }
-        // a partir da tabela "Ranking de vendedores" (colunas Vendedor / Loja / Faturamento / Volume / Clientes),
-        // já FILTRADA para conter somente a unidade Parauapebas. `ignorados` = linhas de outras unidades.
+        // Lê o HTML e devolve { rows: [{ nome, rota, faturamento, volume, clientes }], ignorados }.
+        // FLEXÍVEL: aceita os dois formatos de relatório (Vendas e Avarias).
+        //  - Vendas: tabela "Ranking de vendedores" (Vendedor / Loja / Faturamento / Volume / Clientes).
+        //  - Avarias ("Extrato das Operacoes"): UMA OU MAIS tabelas "Ranking por vendedor (volume)"
+        //    (#, Vendedor, Loja, Operacoes, Volume kg) — SEM coluna Clientes.
+        // Qualifica QUALQUER tabela que tenha coluna "Vendedor" + coluna de volume ("Volume"/"Volume kg").
+        // Clientes e Faturamento são opcionais. O VOLUME é SOMADO por vendedor entre todas as tabelas
+        // qualificadas (essencial p/ avarias com várias tabelas de ranking). Filtra unidade Parauapebas
+        // pela coluna Loja quando ela existe. `ignorados` = linhas de outras unidades.
         function parseRelatorioVendedoresHTML(text) {
             const docHtml = new DOMParser().parseFromString(text, 'text/html');
             const tables = Array.from(docHtml.querySelectorAll('table'));
+            const acc = {};            // nome normalizado → { nome, rota, faturamento, volume, clientes }
+            let ignorados = 0;
+            let achouTabela = false;   // alguma tabela com Vendedor + Volume?
             for (const table of tables) {
                 const trs = Array.from(table.querySelectorAll('tr'));
                 if (!trs.length) continue;
+                // Acha a linha de cabeçalho desta tabela: precisa ter Vendedor E uma coluna de volume.
                 let hIdx = -1, cols = null;
                 for (let i = 0; i < trs.length; i++) {
                     const cells = Array.from(trs[i].querySelectorAll('th,td')).map(c => normNome(c.textContent));
                     const vend = cells.findIndex(c => c.includes('VENDEDOR'));
                     const vol = cells.findIndex(c => c.includes('VOLUME'));
-                    const cli = cells.findIndex(c => c.includes('CLIENTE'));
-                    if (vend !== -1 && vol !== -1 && cli !== -1) {
+                    if (vend !== -1 && vol !== -1) {
                         hIdx = i;
                         cols = {
-                            vend, vol, cli,
-                            loja: cells.findIndex(c => c.includes('LOJA')),
-                            fat: cells.findIndex(c => c.includes('FATURAMENTO'))
+                            vend, vol,
+                            cli: cells.findIndex(c => c.includes('CLIENTE')),    // opcional (-1 no de avarias)
+                            loja: cells.findIndex(c => c.includes('LOJA')),       // opcional, mas usado p/ filtrar
+                            fat: cells.findIndex(c => c.includes('FATURAMENTO'))  // opcional (só no de vendas)
                         };
                         break;
                     }
                 }
-                if (hIdx === -1) continue;
-                if (cols.loja === -1) throw new Error('Coluna "Loja" não encontrada — não dá para filtrar pela unidade Parauapebas.');
-                const rows = [];
-                let ignorados = 0;
+                if (hIdx === -1) continue; // não é tabela de ranking por vendedor → ignora
+                achouTabela = true;
                 for (let i = hIdx + 1; i < trs.length; i++) {
                     const cells = Array.from(trs[i].querySelectorAll('th,td'));
                     if (!cells.length) continue;
                     const nome = (cells[cols.vend]?.textContent || '').trim();
                     const nomeN = normNome(nome);
                     if (!nome || nomeN === 'VENDEDOR' || nomeN.startsWith('TOTAL')) continue;
-                    const loja = (cells[cols.loja]?.textContent || '').trim();
-                    if (!ehParauapebas(loja)) { ignorados++; continue; } // outra unidade → fora
-                    rows.push({
-                        nome,
-                        rota: loja,
-                        faturamento: cols.fat !== -1 ? (cells[cols.fat]?.textContent || '').trim() : '',
-                        volume: parseNum(cells[cols.vol]?.textContent || ''),
-                        clientes: Math.round(parseNum(cells[cols.cli]?.textContent || ''))
-                    });
+                    const loja = cols.loja !== -1 ? (cells[cols.loja]?.textContent || '').trim() : '';
+                    // Filtra unidade só quando há coluna Loja; sem ela, não dá para filtrar → inclui.
+                    if (cols.loja !== -1 && !ehParauapebas(loja)) { ignorados++; continue; }
+                    const key = nomeN;
+                    const e = acc[key] || (acc[key] = { nome, rota: '', faturamento: '', volume: 0, clientes: 0 });
+                    if (!e.rota && loja) e.rota = loja;
+                    if (!e.faturamento && cols.fat !== -1) {
+                        const f = (cells[cols.fat]?.textContent || '').trim();
+                        if (f) e.faturamento = f;
+                    }
+                    e.volume += parseNum(cells[cols.vol]?.textContent || ''); // SOMA entre tabelas
+                    if (cols.cli !== -1) e.clientes += Math.round(parseNum(cells[cols.cli]?.textContent || ''));
                 }
-                return { rows, ignorados };
             }
-            throw new Error('Tabela com colunas "Vendedor", "Volume" e "Clientes" não encontrada no HTML.');
+            if (!achouTabela) {
+                throw new Error('Nenhuma tabela com colunas "Vendedor" e "Volume" foi encontrada no HTML.');
+            }
+            return { rows: Object.values(acc), ignorados };
         }
         async function importarVendasHTML(input) {
             const file = input.files[0];

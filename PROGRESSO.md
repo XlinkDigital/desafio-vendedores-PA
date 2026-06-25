@@ -36,6 +36,7 @@ Página única `index.html` (HTML + CSS + JS num único `<script type="module">`
 
 ### Importação de relatórios
 - **HTML** (relatório único da unidade): separa por vendedor, **somente unidade Parauapebas**; cria vendedores ausentes já como `ativo:true / status:'aprovado'`. Modal resolve homônimos. Lança/atualiza `pontuacoes` por período (não zera C/D existentes).
+- **Parser flexível (`parseRelatorioVendedoresHTML`) aceita os 2 formatos:** Vendas (Vendedor/Loja/Faturamento/Volume/Clientes) e Avarias ("Extrato das Operacoes", tabelas "Ranking por vendedor (volume)" com #/Vendedor/Loja/Operacoes/Volume kg, **SEM Clientes**). Qualifica QUALQUER tabela com coluna Vendedor + coluna de volume ("Volume"/"Volume kg"); Clientes e Faturamento opcionais. **Soma o volume por vendedor entre todas as tabelas** (avarias pode ter várias). Número robusto via `parseNum`: "8.619,8" (BR, ponto=milhar, vírgula=decimal) e "134485" (sem separador), tira " kg". Filtra Parauapebas pela coluna Loja quando existe. Erro claro só se nenhuma tabela Vendedor+Volume for achada.
 - **XLSX** (SheetJS via CDN): uploads de Relatório de Vendas e de Avarias; lê aba "Resumo" → volume (linha "TOTAL GERAL") e nº de clientes; preenche os 3 campos kg (editáveis antes de salvar).
 - Ao escolher o vendedor no Registrar, o campo **Precedentes (C)** é auto-preenchido com o último registro dele (editável).
 
