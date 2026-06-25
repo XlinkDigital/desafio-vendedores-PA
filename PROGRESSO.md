@@ -72,8 +72,15 @@ Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendid
 - **Responsivo (≤900px):** sidebar recolhe (`transform:translateX(-100%)`), abre/fecha pelo hambúrguer da `.mobile-topbar` (barra verde fina) via `toggleSidebar()`/`closeSidebar()` (classe `.open` + overlay `#sidebarOverlay.show`). `goTo()` chama `closeSidebar()` ao trocar de aba.
 - Logo da empresa (`adb.png`, transparente, otimizada 15MB→66KB / 400×161px) na sidebar, na barra mobile e nas **3 telas de acesso** (`.auth-logo-img`). `.header-btn` ainda é usado em botões de tabela (não remover).
 
+## Assistentes (vendedor que conta para outro)
+- Um participante pode ser **assistente de** um vendedor (campo `vinculadoA` = id do principal em `participantes`). Caso real: **Mailson é assistente do Danylo** — tudo que Mailson vende/faz conta para o Danylo.
+- **Efeitos:** assistente é excluído do ranking (`calcRanking`) e de todos os seletores (`syncParticipantSelects`) via `&& !p.vinculadoA`; fica `ativo:false`.
+- **Importação** (`confirmarImportacaoLote`, reescrita em 2 fases): cada linha é resolvida a um participante; se for assistente, o destino vira o `vinculadoA`. Fase 1 acumula/soma por destino (volume, avarias, clientes, faturamento) — se Danylo e Mailson vierem no mesmo relatório, viram **um lançamento só** (A e B ficam corretos). Fase 2 grava 1 doc por destino (update-or-create; C/D intactos).
+- **Vincular:** botão 🔗 na aba Participantes → `vincularAssistente(id)`: prompt numerado escolhe o vendedor principal; **transfere e soma** as pontuações existentes do assistente para o principal (por data; c/d somados) e apaga as do assistente; selo "Assistente de X" na lista. Mesmo botão remove o vínculo (volta `ativo:true`, NÃO desfaz a transferência).
+
 ## Histórico recente (mais recente em cima)
-- (atual) feat: critério B = crescimento do TICKET MÉDIO mensal (R$/kg); persiste faturamento; campo R$ no Registrar + preview; ticket atual←anterior e % colorido no ranking; filtro B ordena por % bruto
+- (atual) feat: assistente de vendedor (Mailson→Danylo) — fora do ranking, lançamentos somam pro principal na importação + transferência dos registros existentes
+- `2ee6531` feat: critério B = crescimento do TICKET MÉDIO mensal (R$/kg); persiste faturamento; campo R$ no Registrar + preview; ticket atual←anterior e % colorido no ranking; filtro B ordena por % bruto
 - `1c64b9b` fix: reset limpa participantes e sincroniza; ranking automatico (fonte única `syncParticipantSelects`)
 - `6600d69` feat: apagar todos os registros / reset de teste
 - `fb47653` feat: importar HTML, somente unidade Parauapebas

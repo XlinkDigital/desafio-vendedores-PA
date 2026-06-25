@@ -1984,7 +1984,8 @@
                     celular: x.celular || '',
                     avatar: initials(x.nome),
                     active: x.ativo === true,
-                    status: x.status || 'pendente'
+                    status: x.status || 'pendente',
+                    vinculadoA: x.vinculadoA || null // id do vendedor principal (assistente não pontua sozinho)
                 };
             });
         }
@@ -2079,7 +2080,7 @@
         // Chamado dentro de refreshAll() → todos os selects ficam sempre sincronizados
         // (e ficam vazios automaticamente após um reset, sem sobrar nome em cache).
         function syncParticipantSelects() {
-            const ativos = (getParticipants() || []).filter(p => p.active);
+            const ativos = (getParticipants() || []).filter(p => p.active && !p.vinculadoA);
             const ids = new Set(ativos.map(p => p.id));
             const opts = ativos.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
             const configs = [
@@ -2377,7 +2378,7 @@
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             const emptyScores = () => ({ a: '0.0', b: '—', bNA: true, c: '0.0', d: '0.0', total: '0.0' });
-            const out = participants.filter(p => p.active).map(p => {
+            const out = participants.filter(p => p.active && !p.vinculadoA).map(p => {
                 // Histórico completo do vendedor, em ordem cronológica (A e B são por período).
                 const hist = scores.filter(s => s.participantId === p.id)
                     .sort((x, y) => new Date(x.date) - new Date(y.date));
@@ -3077,6 +3078,11 @@
                     return;
                 }
                 let lancados = 0, atualizados = 0, criados = 0;
+                // Fase 1 — resolve cada linha a um participante, redireciona assistentes ao
+                // vendedor principal (vinculadoA) e SOMA os números por destino. Assim, se Danylo
+                // e o assistente Mailson aparecerem no mesmo relatório, viram um lançamento só.
+                const addNum = (cur, val) => val == null ? cur : (cur == null ? Number(val) : cur + Number(val));
+                const porDestino = {}; // destId -> { volumeVendido, volumeAvarias, qtdClientes, faturamento }
                 for (const e of entries) {
                     const key = normNome(e.nome);
                     const grupo = groups[key] || [];
@@ -3095,21 +3101,34 @@
                     } else if (e.rota) {
                         await updateDoc(doc(db, 'participantes', part.id), { rota: e.rota });
                     }
-                    // Monta só os campos que vieram nos relatórios (não zera o que não veio).
+                    // Assistente? Tudo que ele vendeu conta para o vendedor principal.
+                    let destId = part.id;
+                    if (part.vinculadoA) {
+                        const principal = DB.participants.find(x => x.id === part.vinculadoA);
+                        if (principal) destId = principal.id;
+                    }
+                    const acc = porDestino[destId] || (porDestino[destId] = { volumeVendido: null, volumeAvarias: null, qtdClientes: null, faturamento: null });
+                    acc.volumeVendido = addNum(acc.volumeVendido, e.volumeVendido);
+                    acc.qtdClientes = addNum(acc.qtdClientes, e.qtdClientes);
+                    acc.volumeAvarias = addNum(acc.volumeAvarias, e.volumeAvarias);
+                    acc.faturamento = addNum(acc.faturamento, e.faturamento ? parseNum(e.faturamento) : null);
+                }
+                // Fase 2 — grava um lançamento por destino (soma já feita). C e D ficam intactos.
+                for (const destId of Object.keys(porDestino)) {
+                    const acc = porDestino[destId];
                     const payload = {};
-                    if (e.volumeVendido != null) payload.volumeVendido = e.volumeVendido;
-                    if (e.qtdClientes != null) payload.qtdClientes = e.qtdClientes;
-                    if (e.volumeAvarias != null) payload.volumeAvarias = e.volumeAvarias;
-                    if (e.faturamento) payload.faturamento = parseNum(e.faturamento); // R$ → ticket médio
-                    // Já existe lançamento do vendedor nesse período? Atualiza; senão cria. (C e D intactos.)
+                    if (acc.volumeVendido != null) payload.volumeVendido = acc.volumeVendido;
+                    if (acc.qtdClientes != null) payload.qtdClientes = acc.qtdClientes;
+                    if (acc.volumeAvarias != null) payload.volumeAvarias = acc.volumeAvarias;
+                    if (acc.faturamento != null) payload.faturamento = acc.faturamento; // R$ → ticket médio
                     const existentes = await getDocs(query(collection(db, 'pontuacoes'),
-                        where('participantId', '==', part.id), where('date', '==', date)));
+                        where('participantId', '==', destId), where('date', '==', date)));
                     if (!existentes.empty) {
                         await updateDoc(doc(db, 'pontuacoes', existentes.docs[0].id), payload);
                         atualizados++;
                     } else {
                         await addDoc(collection(db, 'pontuacoes'), {
-                            participantId: part.id, date,
+                            participantId: destId, date,
                             volumeVendido: payload.volumeVendido || 0,
                             volumeAvarias: payload.volumeAvarias || 0,
                             qtdClientes: payload.qtdClientes || 0,
@@ -3305,20 +3324,27 @@
                 container.innerHTML = '<div class="empty"><i class="fas fa-users"></i><h3>Nenhum participante</h3><p>Adicione manualmente ou aprove uma solicitação.</p></div>';
                 return;
             }
-            container.innerHTML = parts.map(p => `
+            container.innerHTML = parts.map(p => {
+                const principal = p.vinculadoA ? parts.find(x => x.id === p.vinculadoA) : null;
+                const statusTxt = p.vinculadoA
+                    ? `<span style="color:var(--green);font-weight:700"><i class="fas fa-link" style="font-size:0.75rem"></i> Assistente de ${principal ? principal.name : '—'}</span>`
+                    : statusLabel(p);
+                return `
                 <div class="doc-row">
                     <div class="p-avatar" style="width:44px;height:44px;font-size:1rem">${p.avatar}</div>
                     <div class="doc-row-info">
                         <h4>${p.name}</h4>
-                        <p>${p.celular ? p.celular + ' • ' : ''}${p.rota || 'Sem rota'} • ${statusLabel(p)}</p>
+                        <p>${p.celular ? p.celular + ' • ' : ''}${p.rota || 'Sem rota'} • ${statusTxt}</p>
                     </div>
                     <div class="doc-row-actions">
+                        <button onclick="vincularAssistente('${p.id}')" title="${p.vinculadoA ? 'Remover vínculo de assistente' : 'Tornar assistente de um vendedor'}" style="${p.vinculadoA ? 'color:var(--green)' : ''}"><i class="fas fa-link"></i></button>
                         <button onclick="editParticipant('${p.id}')" title="Editar"><i class="fas fa-edit"></i></button>
                         <button onclick="toggleParticipant('${p.id}')" title="${p.active ? 'Desativar' : 'Ativar'}"><i class="fas fa-${p.active ? 'toggle-on' : 'toggle-off'}"></i></button>
                         <button onclick="deleteParticipant('${p.id}')" style="color:var(--red)"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
         window.loadAdmParticipants = loadAdmParticipants;
         async function addParticipant() {
@@ -3367,6 +3393,70 @@
             }
         }
         window.editParticipant = editParticipant;
+        // Vincula um participante como ASSISTENTE de um vendedor: tudo que o assistente vende/faz
+        // passa a contar para o vendedor principal e o assistente sai do ranking e dos seletores.
+        // Ao vincular, os lançamentos já existentes do assistente são transferidos e somados ao principal.
+        async function vincularAssistente(id) {
+            const p = getParticipants().find(x => x.id === id);
+            if (!p) return;
+            // Já é assistente? Oferece remover o vínculo.
+            if (p.vinculadoA) {
+                const atual = getParticipants().find(x => x.id === p.vinculadoA);
+                if (!confirm(`${p.name} é assistente de ${atual ? atual.name : '—'}.\n\nOK = REMOVER o vínculo (volta a participar do ranking sozinho).\nCancelar = manter como está.\n\n(Os lançamentos já transferidos continuam com ${atual ? atual.name : 'o vendedor'}.)`)) return;
+                try {
+                    await updateDoc(doc(db, 'participantes', id), { vinculadoA: null, ativo: true });
+                    await refreshAll(); loadAdmParticipants(); loadAdmRanking();
+                    toast('Vínculo removido', `${p.name} volta a participar do ranking.`, 'info');
+                } catch (err) { console.error(err); toast('Erro', 'Não foi possível remover o vínculo.', 'error'); }
+                return;
+            }
+            // Candidatos a vendedor principal: aprovados e que não sejam assistentes nem o próprio.
+            const candidatos = getParticipants().filter(x => x.id !== id && x.status === 'aprovado' && !x.vinculadoA);
+            if (!candidatos.length) { toast('Sem vendedores', 'Cadastre/aprovecione o vendedor principal primeiro.', 'warning'); return; }
+            const lista = candidatos.map((c, i) => `${i + 1}) ${c.name}${c.rota ? ' — ' + c.rota : ''}`).join('\n');
+            const resp = prompt(`Tornar "${p.name}" ASSISTENTE de qual vendedor?\nTudo que ${p.name} vender/fizer passa a contar para o vendedor escolhido, e ${p.name} sai do ranking.\n\nDigite o número do vendedor:\n\n${lista}`);
+            if (resp === null) return;
+            const principal = candidatos[parseInt(resp.trim(), 10) - 1];
+            if (!principal) { toast('Inválido', 'Número não corresponde a nenhum vendedor da lista.', 'warning'); return; }
+            if (!confirm(`Confirmar: ${p.name} vira assistente de ${principal.name}.\n\nOs lançamentos já existentes de ${p.name} serão TRANSFERIDOS e somados aos de ${principal.name}. Continuar?`)) return;
+            try {
+                await authReady;
+                // Transfere/soma as pontuações do assistente para o principal (por data).
+                const snap = await getDocs(query(collection(db, 'pontuacoes'), where('participantId', '==', id)));
+                for (const ad of snap.docs) {
+                    const a = ad.data();
+                    const ex = await getDocs(query(collection(db, 'pontuacoes'),
+                        where('participantId', '==', principal.id), where('date', '==', a.date)));
+                    if (!ex.empty) {
+                        const pv = ex.docs[0].data();
+                        await updateDoc(doc(db, 'pontuacoes', ex.docs[0].id), {
+                            volumeVendido: (Number(pv.volumeVendido) || 0) + (Number(a.volumeVendido) || 0),
+                            volumeAvarias: (Number(pv.volumeAvarias) || 0) + (Number(a.volumeAvarias) || 0),
+                            qtdClientes: (Number(pv.qtdClientes) || 0) + (Number(a.qtdClientes) || 0),
+                            faturamento: (Number(pv.faturamento) || 0) + (Number(a.faturamento) || 0),
+                            c: (Number(pv.c) || 0) + (Number(a.c) || 0),
+                            d: (Number(pv.d) || 0) + (Number(a.d) || 0)
+                        });
+                    } else {
+                        await addDoc(collection(db, 'pontuacoes'), {
+                            participantId: principal.id, date: a.date,
+                            volumeVendido: Number(a.volumeVendido) || 0,
+                            volumeAvarias: Number(a.volumeAvarias) || 0,
+                            qtdClientes: Number(a.qtdClientes) || 0,
+                            faturamento: Number(a.faturamento) || 0,
+                            c: Number(a.c) || 0, d: Number(a.d) || 0,
+                            notes: (a.notes ? a.notes + ' ' : '') + `(transferido de ${p.name})`,
+                            criadoEm: serverTimestamp()
+                        });
+                    }
+                    await fbDeleteDoc(doc(db, 'pontuacoes', ad.id));
+                }
+                await updateDoc(doc(db, 'participantes', id), { vinculadoA: principal.id, ativo: false });
+                await refreshAll(); loadAdmParticipants(); loadAdmRanking();
+                toast('Assistente vinculado!', `${p.name} agora soma para ${principal.name}.`, 'success');
+            } catch (err) { console.error(err); toast('Erro', 'Não foi possível vincular o assistente.', 'error'); }
+        }
+        window.vincularAssistente = vincularAssistente;
         async function toggleParticipant(id) {
             const p = getParticipants().find(x => x.id === id);
             if (!p) return;
