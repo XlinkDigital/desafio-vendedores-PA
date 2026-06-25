@@ -2265,8 +2265,18 @@
                     erro.classList.add('show');
                     return;
                 }
-                currentUser = { displayName: m.nome, email: null };
-                currentUserData = { nome: m.nome, role: 'vendedor', participantId: m.id };
+                // Os lançamentos podem estar numa DUPLICATA do mesmo nome. Entra no cadastro
+                // (mesmo nome, liberado) que tiver MAIS lançamentos, pra não cair num registro vazio.
+                let alvoRec = m;
+                try {
+                    const scSnap = await getDocs(collection(db, 'pontuacoes'));
+                    const cnt = {};
+                    scSnap.docs.forEach(d => { const pid = (d.data() || {}).participantId; if (pid) cnt[pid] = (cnt[pid] || 0) + 1; });
+                    const mesmoNome = liberados.filter(x => norm(x.nome) === norm(m.nome));
+                    alvoRec = mesmoNome.reduce((best, x) => (cnt[x.id] || 0) > (cnt[best.id] || 0) ? x : best, m);
+                } catch (_) { alvoRec = m; }
+                currentUser = { displayName: alvoRec.nome, email: null };
+                currentUserData = { nome: alvoRec.nome, role: 'vendedor', participantId: alvoRec.id };
                 isAdminSession = false;
                 await entrarApp();
             } catch (err) {
@@ -3599,21 +3609,35 @@
                 box.innerHTML = '<div class="empty"><i class="fas fa-user-lock"></i><h3>Nenhum vendedor</h3><p>Importe um relatório ou cadastre vendedores na aba Participantes.</p></div>';
                 return;
             }
+            // Nº de lançamentos por cadastro — pra enxergar qual registro tem os dados (e qual é duplicata vazia).
+            const counts = {};
+            (getScores() || []).forEach(s => { counts[s.participantId] = (counts[s.participantId] || 0) + 1; });
+            // Nomes que aparecem em mais de um cadastro (duplicados) — causam "vendedor entra e vê 0".
+            const norm = s => (s || '').trim().toLowerCase();
+            const porNome = {};
+            parts.forEach(p => { (porNome[norm(p.name)] ||= []).push(p); });
+            const nomesDup = new Set(Object.keys(porNome).filter(k => porNome[k].length > 1));
             const nPend = parts.filter(p => p.status === 'pendente').length;
-            if (aviso) aviso.innerHTML = nPend
-                ? `<div style="background:#fff3cd;border:1px solid var(--yellow);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.86rem"><strong>${nPend}</strong> cadastro(s) aguardando liberação — defina uma senha e clique em <strong>Liberar</strong>, ou recuse.</div>`
+            const avisos = [];
+            if (nPend) avisos.push(`<strong>${nPend}</strong> cadastro(s) aguardando liberação — defina uma senha e clique em <strong>Liberar</strong>.`);
+            if (nomesDup.size) avisos.push(`⚠️ <strong>${nomesDup.size} vendedor(es) DUPLICADO(s)</strong> (nome repetido). Defina a senha no cadastro que tem <strong>lançamentos</strong> e <strong>apague o vazio</strong> (0 lançamentos) na aba Participantes — senão o vendedor entra e vê pontuação 0.`);
+            if (aviso) aviso.innerHTML = avisos.length
+                ? `<div style="background:#fff3cd;border:1px solid var(--yellow);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.86rem;line-height:1.5">${avisos.join('<br>')}</div>`
                 : '';
             const inputStyle = "padding:9px 11px;border:2px solid #e8e8e8;border-radius:9px;font-family:'Montserrat';font-size:0.82rem;";
             box.innerHTML = parts.map(p => {
                 const badge = p.status === 'pendente'
                     ? '<span style="color:var(--orange);font-weight:700">• Pendente</span>'
                     : (p.active ? '<span style="color:var(--green);font-weight:700">• Liberado</span>' : '<span style="color:var(--red);font-weight:700">• Bloqueado</span>');
+                const nLanc = counts[p.id] || 0;
+                const lancTxt = `<span style="color:${nLanc ? 'var(--green-dark)' : '#c00'};font-weight:700">${nLanc} lançamento(s)</span>`;
+                const dupTxt = nomesDup.has(norm(p.name)) ? ' <span style="color:#c00;font-weight:700">⚠ duplicado</span>' : '';
                 return `
                 <div class="doc-row" style="flex-wrap:wrap;gap:10px;align-items:center">
                     <div class="p-avatar" style="width:44px;height:44px;font-size:1rem">${p.avatar}</div>
                     <div class="doc-row-info" style="flex:1;min-width:150px">
-                        <h4>${p.name} ${badge}</h4>
-                        <p>${p.rota || 'Sem rota'}</p>
+                        <h4>${p.name} ${badge}${dupTxt}</h4>
+                        <p>${lancTxt} · ${p.rota || 'Sem rota'}</p>
                     </div>
                     <input id="login_${p.id}" placeholder="usuário (opcional)" value="${p.login || ''}" style="${inputStyle}width:150px">
                     <input id="senha_${p.id}" type="text" placeholder="senha" value="${p.senha || ''}" style="${inputStyle}width:120px">
