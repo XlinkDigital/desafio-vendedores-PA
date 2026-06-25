@@ -15,11 +15,12 @@ Página única `index.html` (HTML + CSS + JS num único `<script type="module">`
 
 ### Acessos
 - **Admin/Gestor:** entra por **chave** `ABANANAS2026` (nome + chave). Sem Firebase Auth.
-- **Vendedor:** entra só com **nome + número de celular**.
-  - Não existe → cria cadastro em `participantes` com `status: "pendente"` (ativo:false) e mostra "Cadastro enviado! Aguarde a autorização do gestor."
-  - `aprovado` (ativo:true) → entra e vê só o ranking dele (seletor travado no próprio nome).
-  - `pendente` → "Aguardando autorização do gestor."
-  - `recusado` → "Seu acesso não foi autorizado."
+- **Vendedor:** entra com **usuário (ou nome) + SENHA** — **[MUDOU 25/06/2026: era nome + celular].** O **gestor cria/gerencia o login** de cada vendedor no painel **Acessos & Permissões** (define `login` opcional + `senha`, libera/bloqueia). Não há mais auto-cadastro pendente na tela de login.
+  - `acessarVendedor` carrega `participantes` e casa pelo `login` (se houver) **ou** pelo `nome`, normalizado (trim+lowercase). Ex.: usuário "Danylo" → cadastro "Danylo PA" (via `login`). Em homônimos, prioriza o cadastro liberado.
+  - Erros distintos: **não encontrado** / **não liberado** (ativo:false ou status≠aprovado) / **senha incorreta**.
+  - Liberado (`aprovado`/ativo:true) → entra e vê só o ranking dele (seletor travado no próprio nome).
+  - ⚠️ **Senha em texto puro** no Firestore (modelo de baixa segurança, coerente com a chave de admin hardcoded + regras permissivas). Aceitável p/ desafio interno; não usar senha sensível.
+  - Vendedores **importados** (celular vazio) agora logam normalmente: basta o gestor definir a senha deles no painel. Campo `celular` virou dado opcional de cadastro.
 
 ### Dados (Firebase / Firestore — projeto "desafio-boombox")
 - `firebaseConfig` está no código. Login **Anônimo** ativado (só dá contexto pro Firestore; ninguém loga por conta).
@@ -41,7 +42,10 @@ Página única `index.html` (HTML + CSS + JS num único `<script type="module">`
 - Ao escolher o vendedor no Registrar, o campo **Precedentes (C)** é auto-preenchido com o último registro dele (editável).
 
 ### Reset de teste
-- Botão "Resetar tudo (teste)" na aba Participantes (`resetarTudoTeste()`): apaga do Firestore **`pontuacoes` E `participantes`**, depois `refreshAll()` (que via `syncParticipantSelects()` zera todos os dropdowns) + re-render de Participantes/Solicitações/Histórico/Ranking.
+- Botão "Resetar tudo (teste)" na aba Participantes (`resetarTudoTeste()`): apaga do Firestore **`pontuacoes` E `participantes`**, depois `refreshAll()` (que via `syncParticipantSelects()` zera todos os dropdowns) + re-render de Participantes/Acessos/Histórico/Ranking.
+
+### Acessos & Permissões (admin) — NOVO 25/06/2026
+Aba `#adm-acessos` ("Acessos & Permissões", ícone `fa-user-lock`) que **absorveu a antiga aba "Solicitações"**. Lista TODOS os vendedores (pendentes no topo); por linha: usuário (`login`, opcional) + `senha` (input texto) + **Liberar/Salvar** (`salvarAcesso` → grava `login`/`senha`, `ativo:true`, `status:'aprovado'`) e **Bloquear** (`bloquearAcesso` → `ativo:false`, `status:'recusado'`); pendentes têm **Recusar** (`recusarSolicitacao`). Funções: `loadAcessos`/`salvarAcesso`/`bloquearAcesso`/`recusarSolicitacao`. Removidos `loadAdmPending`/`aprovarSolicitacao` (chamada em `resetarTudoTeste` trocada p/ `loadAcessos`). `refreshParticipants` agora mapeia `login` e `senha`. O badge `#pendingBadge` (na nav) segue contando pendentes via `updatePendingBadge`. **Não há mais auto-cadastro** na tela de login do vendedor — o acesso é criado/liberado aqui pelo gestor.
 
 ### Ranking automático
 - A aba **Ranking** (admin) e o **Ranking Geral** (vendedor) mostram TODOS os vendedores ativos automaticamente, sem exigir seleção. Empty-state amigável quando não há vendedor. Após importação, `loadAdmRanking()` é chamado para refletir na hora.
@@ -66,7 +70,8 @@ Recurso onde o **admin parametriza o que o VENDEDOR vê**, começando por **unif
 
 ### Telas
 - **Vendedor:** Meu Ranking · O Que Cumprir · Minha Evolução · Ranking Geral.
-- **Admin:** Ranking · **Como funciona** · Importar · **Dados do relatório** · Registrar · Participantes · Solicitações (aprovar/recusar) · Evolução · **Visualização do vendedor**.
+- **Admin:** Ranking · **Como funciona** · Importar · **Dados do relatório** · Registrar · Participantes · **Acessos & Permissões** · Evolução · **Visualização do vendedor**.
+- **Ranking Geral do vendedor (visibilidade) — NOVO 25/06/2026:** o vendedor vê a **posição e o nome** de todos (a dele e a dos colegas), mas os **pontos/dados só aparecem pra ele mesmo** — os dos colegas viram "—" (pódio e tabela). Implementado em `loadRankingGeral` (vale igual para todos os vendedores). O **admin** continua vendo tudo (`loadAdmRanking` intocado).
 - **Como funciona** (`#adm-como-funciona`): página estática explicando que A/B/C são NOTAS 0-100 (não quantidade), Total = soma (máx 300). Detalha A (fórmula + tabela 0%→100…20%→0), B (crescimento do ticket médio R$/kg) e C (precedentes atendidos → nota).
 - **Dados do relatório** (`#adm-dados`, `loadDadosRelatorio`): lê do Firestore os registros do período selecionado (dropdown `#dadosPeriodo` com as datas existentes) e mostra tabela persistente — Vendedor, Rota, Faturamento, Vendido, Ticket médio, Avarias, Avaria %, Clientes, Vol/cliente. Mesmo formato da prévia de importação.
 - Separação garantida pela nav exibida (vendedor não acessa telas de admin; as 2 novas abas vivem dentro de `#navAdmin`).
@@ -80,7 +85,8 @@ Recurso onde o **admin parametriza o que o VENDEDOR vê**, começando por **unif
 - Logo da empresa (`adb.png`, transparente, otimizada 15MB→66KB / 400×161px) na sidebar, na barra mobile e nas **3 telas de acesso** (`.auth-logo-img`). `.header-btn` ainda é usado em botões de tabela (não remover).
 
 ## Histórico recente (mais recente em cima)
-- (atual) feat: **Visualização do vendedor** — admin parametriza o que o vendedor vê; unifica vendas (titular + assistentes somados na visão do titular, assistentes somem do ranking dele). Coleção `vinculos`, roteamento em `getScores`/`getParticipants` por sessão, `rebuildVendorView()`, `enrichScores(list)` parametrizado, aba `#adm-visualizacao`. Admin e cálculo A/B/C intocados.
+- (atual) feat: **Acessos & Permissões** — login do vendedor vira usuário/nome + **senha** (gestor cria/libera no painel, que absorve "Solicitações"); ranking do vendedor mostra posição+nome dos colegas mas **esconde os pontos/dados dos outros** (só os dele aparecem). `login`/`senha` no `participantes`; `loadAcessos`/`salvarAcesso`/`bloquearAcesso`. Admin intocado.
+- feat: **Visualização do vendedor** — admin parametriza o que o vendedor vê; unifica vendas (titular + assistentes somados na visão do titular, assistentes somem do ranking dele). Coleção `vinculos`, roteamento em `getScores`/`getParticipants` por sessão, `rebuildVendorView()`, `enrichScores(list)` parametrizado, aba `#adm-visualizacao`. Admin e cálculo A/B/C intocados.
 - feat: critério B passa a ser **semanal** (semana vs semana anterior, 1 lançamento = 1 semana) em vez de mensal; dropdown do ranking vira **"Semana de referência"** (`#rankWeek`, datas `YYYY-MM-DD`); textos "Como funciona"/preview/badge atualizados pra "semana". Funções renomeadas: `mesesDisponiveis→semanasDisponiveis`, `popularMesesRanking→popularSemanasRanking`, `fmtMesLabel→fmtSemanaLabel`, `changeRankMonth→changeRankWeek`; `calcRanking(refMonth)→calcRanking(refDate)`. `enrichScores` sem agregação por mês-calendário.
 - refactor: remover critério D (Consulta de Preço) — agora são 3 critérios (A/B/C), máx 300; saiu do cálculo, form, ranking, telas e "Como funciona"
 - revert do ajuste "assistente/Mailson" (2 commits) — Mailson volta a ser vendedor normal; importação e ranking sem lógica de assistente

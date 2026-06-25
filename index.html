@@ -1283,20 +1283,20 @@
             </div>
             <img src="adb.png" alt="Armazém das Bananas" class="auth-logo-img">
             <h1>Acesso Vendedor</h1>
-            <p>Informe seu nome e celular para entrar ou se cadastrar</p>
+            <p>Entre com seu usuário (ou nome) e a senha. O acesso é liberado pelo gestor.</p>
             <form onsubmit="acessarVendedor(event)">
                 <div class="form-group">
-                    <label>Nome completo</label>
-                    <input type="text" id="vendNome" placeholder="Seu nome" required>
+                    <label>Usuário ou nome</label>
+                    <input type="text" id="vendNome" placeholder="Seu usuário ou nome" required>
                 </div>
                 <div class="form-group">
-                    <label>Número de celular</label>
-                    <input type="tel" id="vendCelular" placeholder="(00) 00000-0000" required>
+                    <label>Senha</label>
+                    <input type="password" id="vendSenha" placeholder="Sua senha" required>
                 </div>
                 <div class="error-box" id="vendErro"></div>
                 <div class="success-box" id="vendSucesso"></div>
                 <button type="submit" class="auth-btn" id="btnVendAcessar">
-                    Entrar / Cadastrar
+                    Entrar
                 </button>
             </form>
         </div>
@@ -1382,8 +1382,8 @@
                 <button class="nav-btn" onclick="goTo('adm-participantes')">
                     <i class="fas fa-users"></i> Participantes
                 </button>
-                <button class="nav-btn" onclick="goTo('adm-solicitacoes')">
-                    <i class="fas fa-user-clock"></i> Solicitações <span id="pendingBadge" style="display:none;background:var(--red);color:#fff;border-radius:20px;padding:1px 7px;font-size:0.7rem;margin-left:2px;"></span>
+                <button class="nav-btn" onclick="goTo('adm-acessos')">
+                    <i class="fas fa-user-lock"></i> Acessos &amp; Permissões <span id="pendingBadge" style="display:none;background:var(--red);color:#fff;border-radius:20px;padding:1px 7px;font-size:0.7rem;margin-left:2px;"></span>
                 </button>
                 <button class="nav-btn" onclick="goTo('adm-evolucao')">
                     <i class="fas fa-chart-line"></i> Evolução
@@ -1822,13 +1822,19 @@
                 </div>
             </section>
             <!-- ═══════════════════════════════════════════
-                 ADMIN: SOLICITAÇÕES PENDENTES
+                 ADMIN: ACESSOS & PERMISSÕES
             ═══════════════════════════════════════════ -->
-            <section class="section" id="adm-solicitacoes">
+            <section class="section" id="adm-acessos">
                 <div class="card">
-                    <div class="card-title"><i class="fas fa-user-clock"></i> Solicitações de Acesso</div>
-                    <p style="color:var(--gray-dark);font-size:0.88rem;margin-bottom:16px;">Vendedores que se cadastraram e aguardam autorização para entrar no desafio.</p>
-                    <div id="adminPending"></div>
+                    <div class="card-title"><i class="fas fa-user-lock"></i> Acessos &amp; Permissões</div>
+                    <p style="color:var(--gray-dark);font-size:0.88rem;margin-bottom:16px;line-height:1.55;">
+                        Defina o <strong>login</strong> de cada vendedor (usuário opcional + senha) e
+                        <strong>libere ou bloqueie</strong> o acesso. Cada acesso fica ligado ao cadastro do vendedor
+                        (ex.: o usuário <em>Danylo</em> entra nos dados do vendedor <em>Danylo PA</em>). Se o usuário ficar
+                        em branco, o vendedor entra pelo próprio <strong>nome</strong> + senha.
+                    </p>
+                    <div id="acessosPendentes"></div>
+                    <div id="acessosLista"></div>
                 </div>
             </section>
             <!-- ═══════════════════════════════════════════
@@ -1997,6 +2003,8 @@
                     area: x.rota || 'Vendas',
                     rota: x.rota || '',
                     celular: x.celular || '',
+                    login: x.login || '',   // usuário de acesso (opcional; cai pro nome se vazio)
+                    senha: x.senha || '',   // senha definida pelo gestor no painel Acessos & Permissões
                     avatar: initials(x.nome),
                     active: x.ativo === true,
                     status: x.status || 'pendente'
@@ -2214,61 +2222,56 @@
         // ═══════════════════════════════════════════
         async function acessarVendedor(e) {
             e.preventDefault();
-            const nome = document.getElementById('vendNome').value.trim();
-            const celular = soDigitos(document.getElementById('vendCelular').value);
+            const usuario = document.getElementById('vendNome').value.trim();
+            const senha = document.getElementById('vendSenha').value;
             const erro = document.getElementById('vendErro');
             const sucesso = document.getElementById('vendSucesso');
             const btn = document.getElementById('btnVendAcessar');
             erro.classList.remove('show');
             sucesso.classList.remove('show');
-            if (celular.length < 10) {
-                erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Informe um celular válido com DDD.</span>';
+            if (!usuario || !senha) {
+                erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Informe seu usuário/nome e a senha.</span>';
                 erro.classList.add('show');
                 return;
             }
             btn.disabled = true;
-            btn.innerHTML = 'Verificando... <span class="loading"></span>';
+            btn.innerHTML = 'Entrando... <span class="loading"></span>';
             try {
                 await authReady;
-                const snap = await getDocs(query(collection(db, 'participantes'), where('celular', '==', celular)));
-                if (snap.empty) {
-                    // Não existe → novo cadastro pendente
-                    await addDoc(collection(db, 'participantes'), {
-                        nome: nome,
-                        celular: celular,
-                        rota: '',
-                        ativo: false,
-                        status: 'pendente',
-                        criadoEm: serverTimestamp()
-                    });
-                    sucesso.innerHTML = '<i class="fas fa-check-circle"></i> <span>Cadastro enviado! Aguarde a autorização do gestor.</span>';
-                    sucesso.classList.add('show');
-                    document.getElementById('vendNome').value = '';
-                    document.getElementById('vendCelular').value = '';
+                // Acesso ligado ao cadastro do vendedor: casa pelo USUÁRIO (login) ou pelo NOME (normalizado).
+                const norm = s => (s || '').trim().toLowerCase();
+                const alvo = norm(usuario);
+                const snap = await getDocs(collection(db, 'participantes'));
+                const matches = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                    .filter(x => (x.login && norm(x.login) === alvo) || norm(x.nome) === alvo);
+                if (!matches.length) {
+                    erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Acesso não encontrado. Peça ao gestor para liberar o seu acesso.</span>';
+                    erro.classList.add('show');
                     return;
                 }
-                const docSnap = snap.docs[0];
-                const dados = docSnap.data();
-                const status = dados.status || 'pendente';
-                if (status === 'aprovado' && dados.ativo === true) {
-                    currentUser = { displayName: dados.nome, email: null };
-                    currentUserData = { nome: dados.nome, role: 'vendedor', participantId: docSnap.id };
-                    isAdminSession = false;
-                    await entrarApp();
-                } else if (status === 'recusado') {
-                    erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Seu acesso não foi autorizado. Fale com o gestor.</span>';
+                // Em caso de homônimos, prioriza um cadastro já liberado.
+                const m = matches.find(x => x.ativo === true && (x.status || '') === 'aprovado') || matches[0];
+                if (!(m.ativo === true && (m.status || '') === 'aprovado')) {
+                    erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Seu acesso ainda não foi liberado pelo gestor.</span>';
                     erro.classList.add('show');
-                } else {
-                    sucesso.innerHTML = '<i class="fas fa-clock"></i> <span>Aguardando autorização do gestor.</span>';
-                    sucesso.classList.add('show');
+                    return;
                 }
+                if ((m.senha || '') !== senha) {
+                    erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Senha incorreta.</span>';
+                    erro.classList.add('show');
+                    return;
+                }
+                currentUser = { displayName: m.nome, email: null };
+                currentUserData = { nome: m.nome, role: 'vendedor', participantId: m.id };
+                isAdminSession = false;
+                await entrarApp();
             } catch (err) {
                 console.error(err);
                 erro.innerHTML = '<i class="fas fa-exclamation-circle"></i> <span>Erro de conexão. Tente novamente.</span>';
                 erro.classList.add('show');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = 'Entrar / Cadastrar';
+                btn.innerHTML = 'Entrar';
             }
         }
         window.acessarVendedor = acessarVendedor;
@@ -2377,7 +2380,7 @@
             window.scrollTo(0, 0);
             // Recarrega dados compartilhados antes de renderizar seções que dependem deles
             const precisaDados = ['meu-ranking', 'o-que-cumprir', 'minha-evolucao', 'ranking-geral',
-                'adm-ranking', 'adm-importar', 'adm-dados', 'adm-registrar', 'adm-participantes', 'adm-solicitacoes', 'adm-evolucao', 'adm-visualizacao'];
+                'adm-ranking', 'adm-importar', 'adm-dados', 'adm-registrar', 'adm-participantes', 'adm-acessos', 'adm-evolucao', 'adm-visualizacao'];
             if (precisaDados.includes(sectionId)) await refreshAll();
             if (sectionId === 'adm-dados') loadDadosRelatorio();
             if (sectionId === 'meu-ranking') loadMeuRanking();
@@ -2388,7 +2391,7 @@
             if (sectionId === 'adm-importar') initImportar();
             if (sectionId === 'adm-registrar') initRegistrar();
             if (sectionId === 'adm-participantes') loadAdmParticipants();
-            if (sectionId === 'adm-solicitacoes') loadAdmPending();
+            if (sectionId === 'adm-acessos') loadAcessos();
             if (sectionId === 'adm-evolucao') initAdminEvo();
             if (sectionId === 'adm-visualizacao') initVisualizacao();
             closeSidebar(); // no mobile, fecha o menu ao escolher uma aba
@@ -2583,6 +2586,8 @@
             `).join('');
         }
         window.loadMinhaEvolucao = loadMinhaEvolucao;
+        // Ranking Geral do vendedor: ele vê a POSIÇÃO e o NOME de todos (a dele e a dos colegas),
+        // mas os PONTOS/dados só aparecem para ele mesmo — os dos colegas ficam escondidos ("—").
         function loadRankingGeral() {
             const ranking = calcRanking();
             const sel = document.getElementById('selParticipant');
@@ -2592,12 +2597,13 @@
             document.getElementById('podiumGeral').innerHTML = order.map(i => {
                 const p = top3[i];
                 if (!p) return '';
+                const isMe = myPid && p.id === myPid;
                 return `
                     <div class="podium-slot pos-${i + 1}">
                         ${i === 0 ? '<div class="podium-crown">👑</div>' : ''}
                         <div class="podium-ava">${p.avatar}</div>
-                        <div class="podium-nm">${p.name}</div>
-                        <div class="podium-pts">${p.scores.total}</div>
+                        <div class="podium-nm">${p.name}${isMe ? ' <span style="color:var(--orange);font-size:0.72rem">(VOCÊ)</span>' : ''}</div>
+                        <div class="podium-pts">${isMe ? p.scores.total : '—'}</div>
                         <div class="podium-base">${i + 1}º</div>
                     </div>
                 `;
@@ -2614,7 +2620,7 @@
                                 <span>${p.name} ${isMe ? '<span style="color:var(--orange);font-size:0.75rem">(VOCÊ)</span>' : ''}</span>
                             </div>
                         </td>
-                        <td><strong style="color:var(--green)">${p.scores.total}</strong></td>
+                        <td>${isMe ? `<strong style="color:var(--green)">${p.scores.total}</strong>` : '<span style="color:#bbb">—</span>'}</td>
                     </tr>
                 `;
             }).join('');
@@ -3560,7 +3566,7 @@
                 // zera TODOS os dropdowns de participante — nada fica em cache.
                 await refreshAll();
                 loadAdmParticipants();
-                loadAdmPending();
+                loadAcessos();
                 loadAdminHistory();
                 loadAdmRanking();
                 toast('App zerado', `${snapScores.size} registro(s) e ${snapParts.size} participante(s) removidos.`, 'info');
@@ -3573,47 +3579,85 @@
         // ═══════════════════════════════════════════
         // ADMIN: SOLICITAÇÕES PENDENTES
         // ═══════════════════════════════════════════
-        function loadAdmPending() {
-            const pend = getParticipants().filter(p => p.status === 'pendente');
-            const container = document.getElementById('adminPending');
-            if (pend.length === 0) {
-                container.innerHTML = '<div class="empty"><i class="fas fa-check-circle"></i><h3>Nenhuma solicitação</h3><p>Tudo em dia!</p></div>';
+        // ── ADMIN: Acessos & Permissões (login + liberação de cada vendedor) ──
+        // Lista TODOS os vendedores (pendentes primeiro); o gestor define usuário/senha e libera/bloqueia.
+        // Absorve a antiga aba "Solicitações" — quem se cadastrou aparece aqui como "Pendente".
+        function loadAcessos() {
+            const parts = (getParticipants() || []).slice().sort((a, b) => {
+                const rank = p => p.status === 'pendente' ? 0 : 1; // pendentes no topo
+                return rank(a) - rank(b) || (a.name || '').localeCompare(b.name || '');
+            });
+            const aviso = document.getElementById('acessosPendentes');
+            const box = document.getElementById('acessosLista');
+            if (!box) return;
+            if (!parts.length) {
+                if (aviso) aviso.innerHTML = '';
+                box.innerHTML = '<div class="empty"><i class="fas fa-user-lock"></i><h3>Nenhum vendedor</h3><p>Importe um relatório ou cadastre vendedores na aba Participantes.</p></div>';
                 return;
             }
-            container.innerHTML = pend.map(p => `
-                <div class="doc-row">
+            const nPend = parts.filter(p => p.status === 'pendente').length;
+            if (aviso) aviso.innerHTML = nPend
+                ? `<div style="background:#fff3cd;border:1px solid var(--yellow);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.86rem"><strong>${nPend}</strong> cadastro(s) aguardando liberação — defina uma senha e clique em <strong>Liberar</strong>, ou recuse.</div>`
+                : '';
+            const inputStyle = "padding:9px 11px;border:2px solid #e8e8e8;border-radius:9px;font-family:'Montserrat';font-size:0.82rem;";
+            box.innerHTML = parts.map(p => {
+                const badge = p.status === 'pendente'
+                    ? '<span style="color:var(--orange);font-weight:700">• Pendente</span>'
+                    : (p.active ? '<span style="color:var(--green);font-weight:700">• Liberado</span>' : '<span style="color:var(--red);font-weight:700">• Bloqueado</span>');
+                return `
+                <div class="doc-row" style="flex-wrap:wrap;gap:10px;align-items:center">
                     <div class="p-avatar" style="width:44px;height:44px;font-size:1rem">${p.avatar}</div>
-                    <div class="doc-row-info">
-                        <h4>${p.name}</h4>
-                        <p>${p.celular || 'Sem celular'}</p>
+                    <div class="doc-row-info" style="flex:1;min-width:150px">
+                        <h4>${p.name} ${badge}</h4>
+                        <p>${p.rota || 'Sem rota'}</p>
                     </div>
-                    <div class="doc-row-actions">
-                        <button onclick="aprovarSolicitacao('${p.id}')" title="Aprovar" style="color:var(--green);background:var(--green-light)"><i class="fas fa-check"></i></button>
-                        <button onclick="recusarSolicitacao('${p.id}')" title="Recusar" style="color:var(--red)"><i class="fas fa-times"></i></button>
-                    </div>
-                </div>
-            `).join('');
+                    <input id="login_${p.id}" placeholder="usuário (opcional)" value="${p.login || ''}" style="${inputStyle}width:150px">
+                    <input id="senha_${p.id}" type="text" placeholder="senha" value="${p.senha || ''}" style="${inputStyle}width:120px">
+                    <button class="header-btn" style="color:var(--green);background:var(--green-light)" onclick="salvarAcesso('${p.id}')"><i class="fas fa-key"></i> ${p.active ? 'Salvar' : 'Liberar'}</button>
+                    ${p.active
+                        ? `<button class="header-btn" style="color:var(--red)" onclick="bloquearAcesso('${p.id}')"><i class="fas fa-ban"></i> Bloquear</button>`
+                        : (p.status === 'pendente' ? `<button class="header-btn" style="color:var(--red)" onclick="recusarSolicitacao('${p.id}')"><i class="fas fa-times"></i> Recusar</button>` : '')}
+                </div>`;
+            }).join('');
         }
-        window.loadAdmPending = loadAdmPending;
-        async function aprovarSolicitacao(id) {
+        window.loadAcessos = loadAcessos;
+        async function salvarAcesso(id) {
+            const login = (document.getElementById('login_' + id).value || '').trim();
+            const senha = (document.getElementById('senha_' + id).value || '').trim();
+            if (!senha) { toast('Atenção', 'Defina uma senha para liberar o acesso.', 'warning'); return; }
             try {
-                await updateDoc(doc(db, 'participantes', id), { status: 'aprovado', ativo: true });
+                await authReady;
+                await updateDoc(doc(db, 'participantes', id), { login: login, senha: senha, ativo: true, status: 'aprovado' });
                 await refreshAll();
-                loadAdmPending();
-                toast('Aprovado!', 'O vendedor já pode acessar o ranking.', 'success');
+                loadAcessos();
+                toast('Acesso liberado!', 'O vendedor já pode entrar com usuário/nome + senha.', 'success');
             } catch (err) {
                 console.error(err);
-                toast('Erro', 'Não foi possível aprovar.', 'error');
+                toast('Erro', 'Não foi possível salvar o acesso.', 'error');
             }
         }
-        window.aprovarSolicitacao = aprovarSolicitacao;
+        window.salvarAcesso = salvarAcesso;
+        async function bloquearAcesso(id) {
+            if (!confirm('Bloquear o acesso deste vendedor? Ele não conseguirá mais entrar.')) return;
+            try {
+                await authReady;
+                await updateDoc(doc(db, 'participantes', id), { ativo: false, status: 'recusado' });
+                await refreshAll();
+                loadAcessos();
+                toast('Bloqueado', 'Acesso do vendedor bloqueado.', 'info');
+            } catch (err) {
+                console.error(err);
+                toast('Erro', 'Não foi possível bloquear.', 'error');
+            }
+        }
+        window.bloquearAcesso = bloquearAcesso;
         async function recusarSolicitacao(id) {
-            if (!confirm('Recusar esta solicitação de acesso?')) return;
+            if (!confirm('Recusar este cadastro? O vendedor não terá acesso.')) return;
             try {
                 await updateDoc(doc(db, 'participantes', id), { status: 'recusado', ativo: false });
                 await refreshAll();
-                loadAdmPending();
-                toast('Recusado', 'Solicitação recusada.', 'info');
+                loadAcessos();
+                toast('Recusado', 'Cadastro recusado.', 'info');
             } catch (err) {
                 console.error(err);
                 toast('Erro', 'Não foi possível recusar.', 'error');
