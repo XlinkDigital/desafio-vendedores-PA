@@ -1,6 +1,6 @@
 # Desafio Vendedores — PA · Progresso
 
-Documento de retomada. Última atualização: **23/06/2026**. HEAD na sessão: `1c64b9b`.
+Documento de retomada. Última atualização: **25/06/2026**. HEAD anterior à sessão: `83a14a0`.
 
 ## O que é o projeto
 App de ranking de vendedores do cliente **Armazém das Bananas** ("Desafio Boombox").
@@ -48,18 +48,25 @@ Página única `index.html` (HTML + CSS + JS num único `<script type="module">`
 - Seleção manual de participante só onde faz sentido: **Registrar pontuação** e telas pessoais do vendedor (Meu Ranking / O Que Cumprir / Minha Evolução).
 
 ### Critérios (`calcRanking()` + `enrichScores()`)
-**São 3 critérios: A, B e C.** O critério **D (Consulta de Preço) foi REMOVIDO** em 25/06/2026 — não conta mais. (Saiu do cálculo, do form Registrar, do ranking, das telas e da "Como funciona". O campo `d` ainda existe em docs antigos do Firestore, mas é ignorado — não é lido nem gravado.)
+**São 3 critérios: A, B e C.** O critério **D (Consulta de Preço) foi REMOVIDO** em 25/06/2026 — não conta mais. Saiu do cálculo, do form Registrar, do ranking, das telas, da "Como funciona", do **CSS** (regras mortas `.criteria-icon.d`/`.criteria-bar-fill.d`/`.explain-card.d`/`.explain-card.d .explain-badge`/`.input-group.d` removidas) e do **JS** (não lê nem grava mais o campo `d`: removido de `normalizeScores`, do payload de import HTML e do default de `latest`). "Como funciona" e a Dica agora dizem **3 critérios / máx 300** (era "4 critérios / 400"). Docs antigos do Firestore podem ter `d`, mas é simplesmente ignorado.
 Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendido (kg)**, **Volume de avarias (kg)** (perda+bonif+devol) e **Qtd. de clientes**. Pesos editáveis no topo (`PESO_A/B/C`, default 1). Campo `faturamento` persistido em `pontuacoes`.
 - **A) Trocas e Avarias** (menor = melhor): `avaria_% = volume_avarias / volume_vendido`; `nota = 100 - avaria_%*100*AVARIA_PTS_POR_PCT` (default 5 → 4% = 80, 20% = 0). Usa o período mais recente do vendedor.
-- **B) Vendas Positivo** (crescimento do **TICKET MÉDIO mensal**, maior = melhor): `ticket_mês = faturamento_R$ / volume_kg` (agregado por mês-calendário `YYYY-MM`, somando todos os lançamentos do mês); `cresc_% = (ticket_atual - ticket_anterior)/ticket_anterior` vs o **próprio mês anterior** com ticket válido; `nota = CRESC_NOTA_BASE + cresc_%*CRESC_PTS_POR_PCT` (50 base, 2,5 pt/% → +20% = 100, manter = 50, -20% = 0). Sem mês anterior → **"—" (sem nota, não pontua)**. Premia valor agregado (R$/kg), não volume bruto. Filtrar "Critério B" no ranking admin ordena pelo **% bruto** (maior→menor), desempate por maior ticket. Validado com exemplo Danylo: 05/2026 R$5,07/kg → 06/2026 R$4,71/kg = −7,1%, nota 32,1.
+- **B) Vendas Positivo** (crescimento do **TICKET MÉDIO semanal**, maior = melhor) — **[MUDOU 25/06/2026: mensal → semanal].** Captura é **semanal**: **1 lançamento = 1 semana**. `ticket = faturamento_R$ / volume_kg` do **próprio lançamento** (sem agregar por mês); `cresc_% = (ticket_atual - ticket_anterior)/ticket_anterior` vs o **lançamento (semana) anterior** do vendedor com ticket válido — semana sem R$/kg válido **não pontua e não vira referência** (a próxima compara com a última semana válida, pulando a inválida); `nota = CRESC_NOTA_BASE + cresc_%*CRESC_PTS_POR_PCT` (50 base, 2,5 pt/% → +20% = 100, manter = 50, -20% = 0). Sem semana anterior → **"—" (sem nota, não pontua)**. Premia valor agregado (R$/kg), não volume bruto. Filtrar "Critério B" no ranking admin ordena pelo **% bruto** (maior→menor), desempate por maior ticket. Lógica em `enrichScores()` (varredura cronológica com `prevTicket`). (Campos `ticketMes`/`ticketPrevMes`/`crescTicketPct` mantiveram o nome, mas agora = ticket da **semana** atual/anterior.)
 - **C) Precedente Positivo** → `sc = min(100, avgC*5)*PESO_C` (lógica original, média 30 dias).
 - **Métrica de apoio exibida:** `volume_por_cliente = volume_vendido / qtd_clientes`.
 - Total = soma das **três** notas (com peso). **Máx 300.** Ranking ordenado por total. Barra de progresso do vendedor usa `total/300`.
 - **SEM R$/preço** — tudo proporcional em kg, pra ser justo entre portes diferentes.
 
+### Visualização do vendedor (vínculos titular ⊃ assistentes) — NOVO 25/06/2026
+Recurso onde o **admin parametriza o que o VENDEDOR vê**, começando por **unificar vendas** (titular + assistente). Caso: Mailson é assistente do Danilo → na visão do Danilo os resultados aparecem **somados** e o Mailson **some do ranking** que o Danilo enxerga. **Admin intocado** (vê todos separados, números reais). **Não altera o cálculo de A/B/C** — a soma é só na **camada de exibição**. (Tentativas anteriores `09feb6b`/`fd90654` mexiam no cálculo e foram **revertidas**; esta abordagem é diferente.)
+- **Coleção Firestore `vinculos`**: doc id = id do **titular**, `{ titularId, assistentes: [ids], atualizadoEm }`. Salvo via `setDoc` (idempotente); sem assistentes → `deleteDoc`. Carregado em `refreshVinculos()` (entra no `Promise.all` de `refreshAll`), exposto por `getVinculos()`. ⚠️ **Precisa de regra própria no Firebase Console** (ver Pendências).
+- **Roteamento na camada de dados:** `getParticipants()`/`getScores()` devolvem o dataset **unificado** (`DB.viewParticipants`/`DB.viewScores`) **só em sessão de vendedor** (`useVendorView()`); no admin devolvem os dados crus. Assim TODAS as telas do vendedor (Meu Ranking, O Que Cumprir, Minha Evolução, Ranking Geral) e o `calcRanking` pegam a soma sem alteração individual; o admin usa o mesmo `calcRanking` com dados crus.
+- **`rebuildVendorView()`** (roda em toda `refreshAll`): monta a visão **relativa a quem está logado**. Aplica todos os vínculos **menos aquele em que o viewer é assistente** (assim o assistente continua se vendo individual → no caso Mailson-só-assistente, `aplicar` fica vazio e usa dados crus). Esconde os assistentes (`DB.viewParticipants` sem eles) e, por **data**, **soma** os campos crus do titular+assistentes (volumeVendido, volumeAvarias, qtdClientes, faturamento, c) num lançamento sintético `participantId=titular`; depois `enrichScores(scores)` recalcula A/B com as **mesmas fórmulas**. `enrichScores(list=DB.scores)` foi parametrizado p/ aceitar a lista da visão.
+- **Aba admin `#adm-visualizacao`** ("Visualização do vendedor", ícone `fa-eye`, em `#navAdmin`): dropdown `#vincTitular` + checkboxes de assistentes (`onChangeTitular` exclui titulares e assistentes já usados em outros vínculos, evitando duplo-vínculo/ciclo) + `salvarVinculo()`; card "Vínculos configurados" (`renderVincLista`/`removerVinculo`). Init via `initVisualizacao()` no `goTo`. Validado por simulação (admin separado / Danilo somado sem Mailson / Mailson individual).
+
 ### Telas
 - **Vendedor:** Meu Ranking · O Que Cumprir · Minha Evolução · Ranking Geral.
-- **Admin:** Ranking · **Como funciona** · Importar · **Dados do relatório** · Registrar · Participantes · Solicitações (aprovar/recusar) · Evolução.
+- **Admin:** Ranking · **Como funciona** · Importar · **Dados do relatório** · Registrar · Participantes · Solicitações (aprovar/recusar) · Evolução · **Visualização do vendedor**.
 - **Como funciona** (`#adm-como-funciona`): página estática explicando que A/B/C são NOTAS 0-100 (não quantidade), Total = soma (máx 300). Detalha A (fórmula + tabela 0%→100…20%→0), B (crescimento do ticket médio R$/kg) e C (precedentes atendidos → nota).
 - **Dados do relatório** (`#adm-dados`, `loadDadosRelatorio`): lê do Firestore os registros do período selecionado (dropdown `#dadosPeriodo` com as datas existentes) e mostra tabela persistente — Vendedor, Rota, Faturamento, Vendido, Ticket médio, Avarias, Avaria %, Clientes, Vol/cliente. Mesmo formato da prévia de importação.
 - Separação garantida pela nav exibida (vendedor não acessa telas de admin; as 2 novas abas vivem dentro de `#navAdmin`).
@@ -73,7 +80,9 @@ Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendid
 - Logo da empresa (`adb.png`, transparente, otimizada 15MB→66KB / 400×161px) na sidebar, na barra mobile e nas **3 telas de acesso** (`.auth-logo-img`). `.header-btn` ainda é usado em botões de tabela (não remover).
 
 ## Histórico recente (mais recente em cima)
-- (atual) refactor: remover critério D (Consulta de Preço) — agora são 3 critérios (A/B/C), máx 300; saiu do cálculo, form, ranking, telas e "Como funciona"
+- (atual) feat: **Visualização do vendedor** — admin parametriza o que o vendedor vê; unifica vendas (titular + assistentes somados na visão do titular, assistentes somem do ranking dele). Coleção `vinculos`, roteamento em `getScores`/`getParticipants` por sessão, `rebuildVendorView()`, `enrichScores(list)` parametrizado, aba `#adm-visualizacao`. Admin e cálculo A/B/C intocados.
+- feat: critério B passa a ser **semanal** (semana vs semana anterior, 1 lançamento = 1 semana) em vez de mensal; dropdown do ranking vira **"Semana de referência"** (`#rankWeek`, datas `YYYY-MM-DD`); textos "Como funciona"/preview/badge atualizados pra "semana". Funções renomeadas: `mesesDisponiveis→semanasDisponiveis`, `popularMesesRanking→popularSemanasRanking`, `fmtMesLabel→fmtSemanaLabel`, `changeRankMonth→changeRankWeek`; `calcRanking(refMonth)→calcRanking(refDate)`. `enrichScores` sem agregação por mês-calendário.
+- refactor: remover critério D (Consulta de Preço) — agora são 3 critérios (A/B/C), máx 300; saiu do cálculo, form, ranking, telas e "Como funciona"
 - revert do ajuste "assistente/Mailson" (2 commits) — Mailson volta a ser vendedor normal; importação e ranking sem lógica de assistente
 - `2ee6531` feat: critério B = crescimento do TICKET MÉDIO mensal (R$/kg); persiste faturamento; campo R$ no Registrar + preview; ticket atual←anterior e % colorido no ranking; filtro B ordena por % bruto
 - `1c64b9b` fix: reset limpa participantes e sincroniza; ranking automatico (fonte única `syncParticipantSelects`)
@@ -90,10 +99,11 @@ Captura por período (R$ + kg + clientes): **Faturamento (R$)**, **Volume vendid
 - `a69cabb` feat: Firestore compartilhado + acesso do vendedor por nome+celular com aprovação do gestor
 
 ## Pendências / próximos passos
+- [ ] ⚠️ **AÇÃO DO DONO — regra Firestore p/ `vinculos`:** as regras são por coleção (`participantes`/`pontuacoes`). A coleção nova **`vinculos`** precisa de regra própria, senão salvar/ler vínculo dá *permission-denied*. No Console (https://console.firebase.google.com/project/desafio-boombox/firestore/rules) adicionar: `match /vinculos/{doc} { allow read, write: if request.auth != null; }`
 - [ ] Conferir/ajustar **regras do Firestore** conforme o uso real (já foram publicadas pelo dono).
 - [x] ~~Edição de pontuação~~ — JÁ EXISTE (`editScore`/`saveScore`/`deleteScore` no histórico do Registrar, botões editar/excluir).
-- [x] ~~Dropdown de mês no ranking de crescimento~~ — FEITO. Seletor "Mês de referência" na aba Ranking admin (`#rankMonth`); `calcRanking(refMonth)` ranqueia por um mês fixo ('YYYY-MM') ou pelo mês mais recente de cada vendedor (default ''). Com mês escolhido, A/B/C/D usam os lançamentos daquele mês; sem dados no mês → vendedor sem nota. Funções: `mesesDisponiveis`/`popularMesesRanking`/`changeRankMonth`/`fmtMesLabel`.
-- [ ] Definir período de avaliação real para C/D (hoje usa "últimos 30 dias" fixo; A usa período mais recente; B agora é mês-calendário).
+- [x] ~~Dropdown de semana no ranking de crescimento~~ — FEITO (era "de mês"). Seletor **"Semana de referência"** na aba Ranking admin (`#rankWeek`); `calcRanking(refDate)` ranqueia por uma semana fixa (`'YYYY-MM-DD'`) ou pela semana mais recente de cada vendedor (default ''). Com semana escolhida, A/B/C usam o lançamento daquela data; sem dados na semana → vendedor sem nota. Funções: `semanasDisponiveis`/`popularSemanasRanking`/`changeRankWeek`/`fmtSemanaLabel`.
+- [ ] Definir período de avaliação real para C (hoje usa "últimos 30 dias" fixo; A usa período mais recente; B é semana vs semana anterior). Com captura semanal, talvez C deva virar média das últimas N semanas.
 - [ ] Decidir o que fazer com `exemplo-relatorio-VENDAS.xlsx` / `exemplo-relatorio-AVARIAS.xlsx` (hoje **não commitados** na pasta): commitar, `.gitignore` ou remover.
 
 ## Notas técnicas para quem retomar

@@ -1388,6 +1388,9 @@
                 <button class="nav-btn" onclick="goTo('adm-evolucao')">
                     <i class="fas fa-chart-line"></i> Evolução
                 </button>
+                <button class="nav-btn" onclick="goTo('adm-visualizacao')">
+                    <i class="fas fa-eye"></i> Visualização do vendedor
+                </button>
             </div>
             </nav>
             <div class="sidebar-footer">
@@ -1854,6 +1857,39 @@
                     </div>
                 </div>
             </section>
+            <!-- ═══════════════════════════════════════════
+                 ADMIN: VISUALIZAÇÃO DO VENDEDOR (vínculos titular/assistente)
+            ═══════════════════════════════════════════ -->
+            <section class="section" id="adm-visualizacao">
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-eye"></i> Visualização do vendedor</div>
+                    <p style="color:var(--gray-dark);font-size:0.88rem;margin-bottom:16px;line-height:1.55;">
+                        Configure o que cada vendedor enxerga no painel dele. Ao definir <strong>assistentes</strong> para um
+                        <strong>titular</strong>, os resultados do titular e dos assistentes aparecem <strong>somados</strong>
+                        na visão do titular — e os assistentes somem do ranking que ele vê. O <strong>ranking do admin não
+                        muda</strong>: continua mostrando todo mundo separado e com os números reais.
+                    </p>
+                    <div class="form-group">
+                        <label>Vendedor titular</label>
+                        <select id="vincTitular" onchange="onChangeTitular()" style="width:100%;padding:14px;border:2px solid #e8e8e8;border-radius:12px;font-family:'Montserrat';">
+                            <option value="">Selecione o titular…</option>
+                        </select>
+                    </div>
+                    <div id="vincAssistentesWrap" style="display:none;">
+                        <label style="font-weight:700;font-size:0.85rem;color:var(--gray-dark);display:block;margin-bottom:8px;">
+                            Assistentes (somam na visão do titular):
+                        </label>
+                        <div id="vincAssistentes" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+                        <button class="auth-btn" onclick="salvarVinculo()" style="width:auto;padding:12px 24px;">
+                            <i class="fas fa-floppy-disk"></i> Salvar vínculo
+                        </button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-link"></i> Vínculos configurados</div>
+                    <div id="vincLista"></div>
+                </div>
+            </section>
         </main>
         </div>
     </div>
@@ -1880,6 +1916,7 @@
             getDocs,
             addDoc,
             updateDoc,
+            setDoc,
             deleteDoc as fbDeleteDoc,
             doc,
             query,
@@ -1933,9 +1970,14 @@
         // ═══════════════════════════════════════════
         // CAMADA DE DADOS — FIRESTORE (compartilhado)
         // ═══════════════════════════════════════════
-        const DB = { participants: [], scores: [] };
-        function getParticipants() { return DB.participants; }
-        function getScores() { return DB.scores; }
+        const DB = { participants: [], scores: [], vinculos: [], viewParticipants: null, viewScores: null };
+        // Em sessão de VENDEDOR, os accessors devolvem o dataset UNIFICADO (titular + assistentes
+        // somados, assistentes escondidos) — montado em rebuildVendorView(). No admin, dados crus.
+        // Assim todas as telas do vendedor pegam a soma sem mudar cálculo nem a visão do admin.
+        function useVendorView() { return !!(currentUserData && currentUserData.role === 'vendedor'); }
+        function getParticipants() { return (useVendorView() && DB.viewParticipants) ? DB.viewParticipants : DB.participants; }
+        function getScores() { return (useVendorView() && DB.viewScores) ? DB.viewScores : DB.scores; }
+        function getVinculos() { return DB.vinculos; }
         function initials(nome) {
             return (nome || '?').trim().split(/\s+/).map(n => n[0] || '').join('').toUpperCase().slice(0, 2) || '?';
         }
@@ -2024,6 +2066,45 @@
                 });
             });
         }
+        // ── VISUALIZAÇÃO DO VENDEDOR: dataset unificado (titular + assistentes somados) ──
+        // Roda em toda refreshAll. Só monta visão quando a sessão é de VENDEDOR; no admin não faz nada
+        // (DB.view* ficam null → accessors devolvem dados crus). A unificação é RELATIVA a quem está logado:
+        //  • titular ou vendedor comum → vê os titulares somados e os assistentes escondidos;
+        //  • assistente → o vínculo em que ELE é assistente é ignorado, pra ele continuar se vendo individual.
+        // NÃO altera DB.scores/DB.participants nem o cálculo dos critérios — só deriva um dataset paralelo.
+        function rebuildVendorView() {
+            DB.viewParticipants = null;
+            DB.viewScores = null;
+            if (!useVendorView()) return;
+            const viewerId = currentUserData.participantId;
+            // Aplica todos os vínculos, menos aquele em que o viewer é assistente (assim ele se vê normal).
+            const aplicar = (DB.vinculos || []).filter(v => !v.assistentes.includes(viewerId));
+            if (!aplicar.length) return; // nada a unificar p/ este viewer → usa dados crus
+            const hide = new Set();
+            aplicar.forEach(v => v.assistentes.forEach(a => hide.add(a)));
+            DB.viewParticipants = DB.participants.filter(p => !hide.has(p.id));
+            // Começa com os scores de quem NÃO está escondido; depois substitui os do titular pela soma.
+            let scores = DB.scores.filter(s => !hide.has(s.participantId));
+            aplicar.forEach(v => {
+                const ids = [v.titularId, ...v.assistentes];
+                const porData = {};
+                DB.scores.filter(s => ids.includes(s.participantId)).forEach(s => {
+                    const k = s.date || '';
+                    const m = porData[k] || (porData[k] = {
+                        id: 'view-' + v.titularId + '-' + k, participantId: v.titularId, date: s.date,
+                        volumeVendido: 0, volumeAvarias: 0, qtdClientes: 0, faturamento: 0, c: 0, notes: ''
+                    });
+                    m.volumeVendido += Number(s.volumeVendido) || 0;
+                    m.volumeAvarias += Number(s.volumeAvarias) || 0;
+                    m.qtdClientes += Number(s.qtdClientes) || 0;
+                    m.faturamento += Number(s.faturamento) || 0;
+                    m.c += Number(s.c) || 0;
+                });
+                scores = scores.filter(s => s.participantId !== v.titularId).concat(Object.values(porData));
+            });
+            enrichScores(scores); // recalcula A/B e métricas no dataset somado (mesmas fórmulas)
+            DB.viewScores = scores;
+        }
         // FONTE ÚNICA DE VERDADE dos seletores de participante.
         // Re-renderiza TODOS os dropdowns a partir de DB.participants (Firestore),
         // preservando a seleção atual só quando o participante ainda existe.
@@ -2049,9 +2130,19 @@
             });
         }
         window.syncParticipantSelects = syncParticipantSelects;
+        // Vínculos titular→assistentes (config compartilhada no Firestore, doc id = id do titular).
+        async function refreshVinculos() {
+            await authReady;
+            const snap = await getDocs(collection(db, 'vinculos'));
+            DB.vinculos = snap.docs.map(d => {
+                const x = d.data();
+                return { titularId: x.titularId || d.id, assistentes: Array.isArray(x.assistentes) ? x.assistentes : [] };
+            }).filter(v => v.titularId && v.assistentes.length);
+        }
         async function refreshAll() {
             try {
-                await Promise.all([refreshParticipants(), refreshScores()]);
+                await Promise.all([refreshParticipants(), refreshScores(), refreshVinculos()]);
+                rebuildVendorView();
                 syncParticipantSelects();
                 updatePendingBadge();
             } catch (err) {
@@ -2286,7 +2377,7 @@
             window.scrollTo(0, 0);
             // Recarrega dados compartilhados antes de renderizar seções que dependem deles
             const precisaDados = ['meu-ranking', 'o-que-cumprir', 'minha-evolucao', 'ranking-geral',
-                'adm-ranking', 'adm-importar', 'adm-dados', 'adm-registrar', 'adm-participantes', 'adm-solicitacoes', 'adm-evolucao'];
+                'adm-ranking', 'adm-importar', 'adm-dados', 'adm-registrar', 'adm-participantes', 'adm-solicitacoes', 'adm-evolucao', 'adm-visualizacao'];
             if (precisaDados.includes(sectionId)) await refreshAll();
             if (sectionId === 'adm-dados') loadDadosRelatorio();
             if (sectionId === 'meu-ranking') loadMeuRanking();
@@ -2299,6 +2390,7 @@
             if (sectionId === 'adm-participantes') loadAdmParticipants();
             if (sectionId === 'adm-solicitacoes') loadAdmPending();
             if (sectionId === 'adm-evolucao') initAdminEvo();
+            if (sectionId === 'adm-visualizacao') initVisualizacao();
             closeSidebar(); // no mobile, fecha o menu ao escolher uma aba
         }
         window.goTo = goTo;
@@ -2529,38 +2621,134 @@
         }
         window.loadRankingGeral = loadRankingGeral;
         // ═══════════════════════════════════════════
+        // ADMIN: VISUALIZAÇÃO DO VENDEDOR (vínculos titular ⊃ assistentes)
+        // Configura quem o VENDEDOR vê somado. Não toca em dados reais nem no ranking do admin.
+        // ═══════════════════════════════════════════
+        function nomeDe(id) { const p = (DB.participants || []).find(x => x.id === id); return p ? p.name : '—'; }
+        function initVisualizacao() {
+            const sel = document.getElementById('vincTitular');
+            if (!sel) return;
+            const ativos = (DB.participants || []).filter(p => p.active);
+            const atual = sel.value;
+            sel.innerHTML = '<option value="">Selecione o titular…</option>' +
+                ativos.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            sel.value = ativos.some(p => p.id === atual) ? atual : '';
+            onChangeTitular();
+            renderVincLista();
+        }
+        window.initVisualizacao = initVisualizacao;
+        function onChangeTitular() {
+            const tid = document.getElementById('vincTitular').value;
+            const wrap = document.getElementById('vincAssistentesWrap');
+            const box = document.getElementById('vincAssistentes');
+            if (!tid) { wrap.style.display = 'none'; box.innerHTML = ''; return; }
+            wrap.style.display = 'block';
+            const cfg = (DB.vinculos || []).find(v => v.titularId === tid);
+            const jaAssist = new Set(cfg ? cfg.assistentes : []);
+            // Indisponíveis: qualquer titular (não pode ser assistente) e assistentes de OUTROS vínculos.
+            const usados = new Set();
+            (DB.vinculos || []).forEach(v => {
+                usados.add(v.titularId);
+                if (v.titularId !== tid) v.assistentes.forEach(a => usados.add(a));
+            });
+            const cand = (DB.participants || []).filter(p => p.active && p.id !== tid && !usados.has(p.id));
+            if (!cand.length) { box.innerHTML = '<p style="color:#888;font-size:0.85rem">Nenhum outro vendedor disponível para vincular.</p>'; return; }
+            box.innerHTML = cand.map(p => `
+                <label class="doc-row" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                    <input type="checkbox" value="${p.id}" ${jaAssist.has(p.id) ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--green);">
+                    <div class="p-avatar">${p.avatar}</div>
+                    <span style="font-weight:700">${p.name}</span>
+                </label>
+            `).join('');
+        }
+        window.onChangeTitular = onChangeTitular;
+        async function salvarVinculo() {
+            const tid = document.getElementById('vincTitular').value;
+            if (!tid) { toast('Atenção', 'Selecione o titular.', 'warning'); return; }
+            const assistentes = [...document.querySelectorAll('#vincAssistentes input[type=checkbox]:checked')].map(c => c.value);
+            try {
+                await authReady;
+                if (assistentes.length) {
+                    await setDoc(doc(db, 'vinculos', tid), { titularId: tid, assistentes, atualizadoEm: serverTimestamp() });
+                } else {
+                    await fbDeleteDoc(doc(db, 'vinculos', tid)).catch(() => {}); // sem assistentes → remove o vínculo
+                }
+                await refreshAll();
+                initVisualizacao();
+                toast('Salvo!', 'Visualização do vendedor atualizada.', 'success');
+            } catch (err) {
+                console.error(err);
+                toast('Erro', 'Não foi possível salvar o vínculo.', 'error');
+            }
+        }
+        window.salvarVinculo = salvarVinculo;
+        async function removerVinculo(tid) {
+            if (!confirm(`Remover o vínculo de ${nomeDe(tid)}? Os assistentes voltam a aparecer separados na visão do vendedor.`)) return;
+            try {
+                await authReady;
+                await fbDeleteDoc(doc(db, 'vinculos', tid));
+                await refreshAll();
+                initVisualizacao();
+                toast('Removido', 'Vínculo desfeito.', 'info');
+            } catch (err) {
+                console.error(err);
+                toast('Erro', 'Não foi possível remover o vínculo.', 'error');
+            }
+        }
+        window.removerVinculo = removerVinculo;
+        function renderVincLista() {
+            const box = document.getElementById('vincLista');
+            if (!box) return;
+            const vinc = DB.vinculos || [];
+            if (!vinc.length) {
+                box.innerHTML = '<div class="empty"><i class="fas fa-link"></i><h3>Nenhum vínculo ainda</h3><p>Escolha um titular acima e marque os assistentes que somam na visão dele.</p></div>';
+                return;
+            }
+            box.innerHTML = vinc.map(v => `
+                <div class="doc-row">
+                    <div class="doc-row-info">
+                        <strong>${nomeDe(v.titularId)}</strong>
+                        <span style="color:#888;font-size:0.85rem;"> vê somado: ${v.assistentes.map(nomeDe).join(', ')}</span>
+                    </div>
+                    <div class="doc-row-actions">
+                        <button class="header-btn" style="color:var(--red)" onclick="removerVinculo('${v.titularId}')"><i class="fas fa-trash"></i> Remover</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        // ═══════════════════════════════════════════
         // ADMIN VIEWS
         // ═══════════════════════════════════════════
         let admRankingFilter = 'all';
-        let admRankingMonth = ''; // '' = mês mais recente automático; 'YYYY-MM' = mês fixo do dropdown
-        // 'YYYY-MM' → '06/2026'
-        function fmtMesLabel(mk) { const [y, m] = mk.split('-'); return `${m}/${y}`; }
-        // Meses com lançamento, mais recente primeiro.
-        function mesesDisponiveis() {
-            const set = new Set((getScores() || []).map(s => (s.date || '').slice(0, 7)).filter(Boolean));
+        let admRankingWeek = ''; // '' = semana mais recente automática; 'YYYY-MM-DD' = semana fixa do dropdown
+        // 'YYYY-MM-DD' → '23/06/2026' (rótulo da semana = data do lançamento)
+        function fmtSemanaLabel(d) { const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}`; }
+        // Semanas (datas de lançamento) com registro, mais recente primeiro.
+        function semanasDisponiveis() {
+            const set = new Set((getScores() || []).map(s => s.date).filter(Boolean));
             return [...set].sort().reverse();
         }
-        // Popula o dropdown de mês de referência preservando a seleção atual (se ainda existir).
-        function popularMesesRanking() {
-            const sel = document.getElementById('rankMonth');
+        // Popula o dropdown de semana de referência preservando a seleção atual (se ainda existir).
+        function popularSemanasRanking() {
+            const sel = document.getElementById('rankWeek');
             if (!sel) return;
-            const meses = mesesDisponiveis();
-            const atual = admRankingMonth;
-            sel.innerHTML = '<option value="">Mês mais recente (automático)</option>' +
-                meses.map(mk => `<option value="${mk}">${fmtMesLabel(mk)}</option>`).join('');
-            sel.value = meses.includes(atual) ? atual : '';
-            admRankingMonth = sel.value;
+            const semanas = semanasDisponiveis();
+            const atual = admRankingWeek;
+            sel.innerHTML = '<option value="">Semana mais recente (automático)</option>' +
+                semanas.map(d => `<option value="${d}">${fmtSemanaLabel(d)}</option>`).join('');
+            sel.value = semanas.includes(atual) ? atual : '';
+            admRankingWeek = sel.value;
         }
-        function changeRankMonth(v) { admRankingMonth = v; loadAdmRanking(); }
-        window.changeRankMonth = changeRankMonth;
+        function changeRankWeek(v) { admRankingWeek = v; loadAdmRanking(); }
+        window.changeRankWeek = changeRankWeek;
         function loadAdmRanking(filter = admRankingFilter) {
             admRankingFilter = filter;
-            popularMesesRanking();
-            const refMonth = admRankingMonth || null;
-            const hint = document.getElementById('rankMonthHint');
-            if (hint) hint.textContent = refMonth
-                ? `Crescimento de ${fmtMesLabel(refMonth)} vs o mês anterior de cada vendedor.`
-                : 'Usa o mês mais recente de cada vendedor.';
+            popularSemanasRanking();
+            const refWeek = admRankingWeek || null;
+            const hint = document.getElementById('rankWeekHint');
+            if (hint) hint.textContent = refWeek
+                ? `Crescimento da semana de ${fmtSemanaLabel(refWeek)} vs a semana anterior de cada vendedor.`
+                : 'Usa a semana mais recente de cada vendedor.';
             // Ordena pelo critério escolhido (ou pelo total quando "Todos")
             // Valor de ordenação: total quando filtro = "all"; senão a nota do critério.
             // "—" (B sem período anterior) vira -1 para cair pro fim da lista.
