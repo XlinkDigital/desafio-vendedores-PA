@@ -1434,6 +1434,18 @@
                         <div class="trend-grid" id="trendGrid"></div>
                     </div>
                     <div class="card">
+                        <div class="card-title"><i class="fas fa-tags"></i> Seu Ticket Médio</div>
+                        <div style="text-align:center; padding:6px 0 2px">
+                            <div id="myTicket" style="font-size:2.1rem; font-weight:800; color:var(--green); line-height:1.1">—</div>
+                            <div style="color:var(--gray-dark); font-weight:600; font-size:0.82rem">faturamento por kg vendido nesta semana</div>
+                            <div id="myTicketCresc" style="margin-top:8px"></div>
+                        </div>
+                        <div class="tip" style="margin-top:10px">
+                            <i class="fas fa-lightbulb"></i>
+                            <p><strong>Como subir:</strong> ticket médio é o quanto você fatura por quilo vendido. Para aumentar, priorize produtos de maior valor e segure os descontos — quanto maior o ticket, mais pontos no critério <strong>Vendas Positivo</strong>.</p>
+                        </div>
+                    </div>
+                    <div class="card">
                         <div class="card-title"><i class="fas fa-bullseye"></i> Progresso</div>
                         <div class="progress-ring-wrap">
                             <div class="progress-ring">
@@ -2515,6 +2527,9 @@
             document.getElementById('progCircle').style.strokeDashoffset = circ - (pct / 100) * circ;
             document.getElementById('progNum').textContent = Math.round(pct) + '%';
             document.getElementById('myPrecedents').textContent = me.scores.c;
+            // Ticket médio (R$/kg) do próprio vendedor — só ele vê o dele (pid = nome logado)
+            document.getElementById('myTicket').textContent = fmtTicket(me.scores.ticketMes);
+            document.getElementById('myTicketCresc').innerHTML = crescTicketBadge(me.scores);
             const scores = getScores().filter(s => s.participantId === pid)
                 .sort((a, b) => new Date(a.date) - new Date(b.date));
             const trendGrid = document.getElementById('trendGrid');
