@@ -1157,7 +1157,7 @@
         /* ═══════════ ACESSOS & PERMISSÕES ═══════════ */
         .acesso-row {
             display: grid;
-            grid-template-columns: 44px minmax(150px, 1fr) 150px 120px auto;
+            grid-template-columns: 44px minmax(140px, 1fr) minmax(110px, 150px) minmax(90px, 120px) auto;
             align-items: center;
             gap: 12px;
             padding: 14px;
@@ -1169,6 +1169,7 @@
         .acesso-info p { font-size: 0.78rem; color: #888; margin: 2px 0 0; }
         .acesso-input {
             width: 100%;
+            min-width: 0;
             box-sizing: border-box;
             padding: 9px 11px;
             border: 2px solid #e8e8e8;
@@ -1177,7 +1178,7 @@
             font-size: 0.82rem;
         }
         .acesso-input:focus { outline: none; border-color: var(--green); }
-        .acesso-acoes { display: flex; gap: 8px; }
+        .acesso-acoes { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
         .acesso-btn {
             display: inline-flex;
             align-items: center;
@@ -1197,7 +1198,7 @@
         .acesso-btn.salvar:hover { background: var(--green); color: var(--white); }
         .acesso-btn.perigo { color: var(--red); background: var(--white); border-color: #f3d2d2; }
         .acesso-btn.perigo:hover { background: var(--red); color: var(--white); border-color: var(--red); }
-        @media (max-width: 720px) {
+        @media (max-width: 900px) {
             .acesso-row {
                 grid-template-columns: 44px 1fr;
                 grid-template-areas:
