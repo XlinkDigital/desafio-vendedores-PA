@@ -1154,6 +1154,65 @@
             transition: all 0.2s;
         }
         .doc-row-actions button:hover { background: var(--green); color: var(--white); }
+        /* ═══════════ ACESSOS & PERMISSÕES ═══════════ */
+        .acesso-row {
+            display: grid;
+            grid-template-columns: 44px minmax(150px, 1fr) 150px 120px auto;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            background: var(--gray);
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+        .acesso-info h4 { font-weight: 700; font-size: 0.9rem; margin: 0; }
+        .acesso-info p { font-size: 0.78rem; color: #888; margin: 2px 0 0; }
+        .acesso-input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 9px 11px;
+            border: 2px solid #e8e8e8;
+            border-radius: 9px;
+            font-family: 'Montserrat';
+            font-size: 0.82rem;
+        }
+        .acesso-input:focus { outline: none; border-color: var(--green); }
+        .acesso-acoes { display: flex; gap: 8px; }
+        .acesso-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 9px 14px;
+            border: 2px solid transparent;
+            border-radius: 9px;
+            font-family: 'Montserrat';
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .acesso-btn.salvar { color: var(--green-dark); background: var(--green-light); border-color: var(--green-light); }
+        .acesso-btn.salvar:hover { background: var(--green); color: var(--white); }
+        .acesso-btn.perigo { color: var(--red); background: var(--white); border-color: #f3d2d2; }
+        .acesso-btn.perigo:hover { background: var(--red); color: var(--white); border-color: var(--red); }
+        @media (max-width: 720px) {
+            .acesso-row {
+                grid-template-columns: 44px 1fr;
+                grid-template-areas:
+                    "avatar info"
+                    "login login"
+                    "senha senha"
+                    "acoes acoes";
+            }
+            .acesso-avatar { grid-area: avatar; }
+            .acesso-info { grid-area: info; }
+            .acesso-login { grid-area: login; }
+            .acesso-senha { grid-area: senha; }
+            .acesso-acoes { grid-area: acoes; }
+            .acesso-acoes .acesso-btn { flex: 1; }
+        }
         /* EMPTY */
         .empty {
             text-align: center;
@@ -3639,7 +3698,6 @@
             if (aviso) aviso.innerHTML = avisos.length
                 ? `<div style="background:#fff3cd;border:1px solid var(--yellow);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.86rem;line-height:1.5">${avisos.join('<br>')}</div>`
                 : '';
-            const inputStyle = "padding:9px 11px;border:2px solid #e8e8e8;border-radius:9px;font-family:'Montserrat';font-size:0.82rem;";
             box.innerHTML = parts.map(p => {
                 const badge = p.status === 'pendente'
                     ? '<span style="color:var(--orange);font-weight:700">• Pendente</span>'
@@ -3648,18 +3706,20 @@
                 const lancTxt = `<span style="color:${nLanc ? 'var(--green-dark)' : '#c00'};font-weight:700">${nLanc} lançamento(s)</span>`;
                 const dupTxt = nomesDup.has(norm(p.name)) ? ' <span style="color:#c00;font-weight:700">⚠ duplicado</span>' : '';
                 return `
-                <div class="doc-row" style="flex-wrap:wrap;gap:10px;align-items:center">
-                    <div class="p-avatar" style="width:44px;height:44px;font-size:1rem">${p.avatar}</div>
-                    <div class="doc-row-info" style="flex:1;min-width:150px">
+                <div class="acesso-row">
+                    <div class="p-avatar acesso-avatar" style="width:44px;height:44px;font-size:1rem">${p.avatar}</div>
+                    <div class="acesso-info">
                         <h4>${p.name} ${badge}${dupTxt}</h4>
                         <p>${lancTxt} · ${p.rota || 'Sem rota'}</p>
                     </div>
-                    <input id="login_${p.id}" placeholder="usuário (opcional)" value="${p.login || ''}" style="${inputStyle}width:150px">
-                    <input id="senha_${p.id}" type="text" placeholder="senha" value="${p.senha || ''}" style="${inputStyle}width:120px">
-                    <button class="header-btn" style="color:var(--green);background:var(--green-light)" onclick="salvarAcesso('${p.id}')"><i class="fas fa-key"></i> ${p.active ? 'Salvar' : 'Liberar'}</button>
-                    ${p.active
-                        ? `<button class="header-btn" style="color:var(--red)" onclick="bloquearAcesso('${p.id}')"><i class="fas fa-ban"></i> Bloquear</button>`
-                        : (p.status === 'pendente' ? `<button class="header-btn" style="color:var(--red)" onclick="recusarSolicitacao('${p.id}')"><i class="fas fa-times"></i> Recusar</button>` : '')}
+                    <input id="login_${p.id}" class="acesso-input acesso-login" placeholder="usuário (opcional)" value="${p.login || ''}">
+                    <input id="senha_${p.id}" type="text" class="acesso-input acesso-senha" placeholder="senha" value="${p.senha || ''}">
+                    <div class="acesso-acoes">
+                        <button class="acesso-btn salvar" onclick="salvarAcesso('${p.id}')"><i class="fas fa-key"></i> ${p.active ? 'Salvar' : 'Liberar'}</button>
+                        ${p.active
+                            ? `<button class="acesso-btn perigo" onclick="bloquearAcesso('${p.id}')"><i class="fas fa-ban"></i> Bloquear</button>`
+                            : (p.status === 'pendente' ? `<button class="acesso-btn perigo" onclick="recusarSolicitacao('${p.id}')"><i class="fas fa-times"></i> Recusar</button>` : '')}
+                    </div>
                 </div>`;
             }).join('');
         }
